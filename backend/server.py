@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field, EmailStr
-from typing import List
+from typing import List, Optional
 from pathlib import Path
 from datetime import datetime, timezone
 import os, uuid, logging
@@ -49,6 +49,23 @@ class Product(ProductIn):
 class CheckoutIn(BaseModel):
     product_id: str
     customer_email: EmailStr
+    discount_code: str = ""
+
+
+class DiscountIn(BaseModel):
+    model_config = {"str_strip_whitespace": True}
+    code: str = Field(min_length=3, max_length=24, pattern=r"^[A-Za-z0-9_-]+$")
+    percent: int = Field(ge=1, le=95)
+    max_uses: Optional[int] = Field(default=None, ge=1)
+
+
+class DiscountToggle(BaseModel):
+    active: bool
+
+
+class ValidateDiscountIn(BaseModel):
+    code: str
+    product_id: str
 
 
 class SubmitPaymentIn(BaseModel):
@@ -78,6 +95,7 @@ async def seed():
     for i, _, _, p, *_ in SEED:
         await db.products.update_one({"id": i, "price": OLD_USD_PRICES[i]}, {"$set": {"price": float(p)}})
     await db.settings.update_one({"id": "store"}, {"$setOnInsert": {"id": "store", "gpay_number": "9337939011", "qr_path": ""}}, upsert=True)
+    await db.discounts.create_index("code", unique=True)
 
 
 @app.on_event("startup")
@@ -130,19 +148,47 @@ async def store_qr():
     return Response(content=data, media_type=s.get("qr_content_type") or ctype)
 
 
+def discounted(price: float, percent: int) -> float:
+    return round(price * (100 - percent) / 100, 2)
+
+
+def usable_filter(code: str) -> dict:
+    return {"code": code.strip().upper(), "active": True,
+            "$or": [{"max_uses": None}, {"$expr": {"$lt": ["$uses", "$max_uses"]}}]}
+
+
+async def find_product(product_id: str):
+    item = await db.products.find_one({"id": product_id, "published": True}, {"_id": 0})
+    if not item: raise HTTPException(404, "Product not found")
+    return item
+
+
+@api_router.post("/discounts/validate")
+async def validate_discount(body: ValidateDiscountIn):
+    item = await find_product(body.product_id)
+    d = await db.discounts.find_one(usable_filter(body.code), {"_id": 0})
+    if not d: raise HTTPException(400, "This code isn't valid or has run out")
+    return {"code": d["code"], "percent": d["percent"], "original": item["price"], "final": discounted(item["price"], d["percent"])}
+
+
 @api_router.post("/payments/checkout")
 async def checkout(body: CheckoutIn):
-    item = await db.products.find_one({"id": body.product_id, "published": True}, {"_id": 0})
-    if not item: raise HTTPException(404, "Product not found")
+    item = await find_product(body.product_id)
+    amount, code, percent = item["price"], "", 0
+    if body.discount_code.strip():
+        d = await db.discounts.find_one_and_update(usable_filter(body.discount_code), {"$inc": {"uses": 1}})
+        if not d: raise HTTPException(400, "This code isn't valid or has run out")
+        code, percent, amount = d["code"], d["percent"], discounted(item["price"], d["percent"])
     session_id = uuid.uuid4().hex
     await db.orders.insert_one({
         "id": str(uuid.uuid4()), "session_id": session_id, "product_id": item["id"], "product_name": item["name"],
-        "amount": item["price"], "customer_email": body.customer_email, "payment_method": "gpay",
+        "amount": amount, "original_amount": item["price"], "discount_code": code, "discount_percent": percent,
+        "customer_email": body.customer_email, "payment_method": "gpay",
         "payment_status": "awaiting_payment", "transaction_id": "", "created_at": now()})
     return {"session_id": session_id}
 
 
-ORDER_PUBLIC = {"_id": 0, "session_id": 1, "payment_status": 1, "product_id": 1, "product_name": 1, "amount": 1, "customer_email": 1}
+ORDER_PUBLIC = {"_id": 0, "session_id": 1, "payment_status": 1, "product_id": 1, "product_name": 1, "amount": 1, "original_amount": 1, "discount_code": 1, "discount_percent": 1, "customer_email": 1}
 
 
 @api_router.get("/payments/status/{session_id}")
@@ -232,6 +278,28 @@ async def review_order(order_id: str, action: str, _: dict = Depends(admin_user)
     res = await db.orders.update_one({"id": order_id, "payment_status": "pending_review"}, {"$set": {"payment_status": status, "reviewed_at": now()}})
     if not res.matched_count: raise HTTPException(400, "Only orders waiting for review can be approved or rejected")
     return await db.orders.find_one({"id": order_id}, {"_id": 0})
+
+
+@api_router.get("/admin/discounts")
+async def list_discounts(_: dict = Depends(admin_user)):
+    return await db.discounts.find({}, {"_id": 0}).sort("created_at", -1).to_list(200)
+
+
+@api_router.post("/admin/discounts")
+async def create_discount(body: DiscountIn, _: dict = Depends(admin_user)):
+    code = body.code.upper()
+    if await db.discounts.find_one({"code": code}): raise HTTPException(400, "A code with this name already exists")
+    doc = {"id": str(uuid.uuid4()), "code": code, "percent": body.percent, "max_uses": body.max_uses, "uses": 0, "active": True, "created_at": now()}
+    await db.discounts.insert_one(doc)
+    doc.pop("_id", None)
+    return doc
+
+
+@api_router.patch("/admin/discounts/{discount_id}")
+async def toggle_discount(discount_id: str, body: DiscountToggle, _: dict = Depends(admin_user)):
+    res = await db.discounts.update_one({"id": discount_id}, {"$set": {"active": body.active}})
+    if not res.matched_count: raise HTTPException(404, "Code not found")
+    return await db.discounts.find_one({"id": discount_id}, {"_id": 0})
 
 
 @api_router.get("/admin/settings")

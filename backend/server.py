@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import FastAPI, APIRouter, Depends, HTTPException, UploadFile, File, Request
 from fastapi.responses import Response
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -13,6 +13,8 @@ import os, uuid, logging
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / ".env")
 from storage import init_storage, put_object, get_object, APP_NAME  # noqa: E402
+from email_service import send_email, approval_email  # noqa: E402
+from urllib.parse import urlparse  # noqa: E402
 
 logger = logging.getLogger("morrow")
 client = AsyncIOMotorClient(os.environ["MONGO_URL"])
@@ -62,7 +64,8 @@ class DiscountIn(BaseModel):
 
 
 class DiscountToggle(BaseModel):
-    active: bool
+    active: Optional[bool] = None
+    featured: Optional[bool] = None
 
 
 class ValidateDiscountIn(BaseModel):
@@ -99,6 +102,9 @@ async def seed():
     await db.settings.update_one({"id": "store"}, {"$setOnInsert": {"id": "store", "gpay_number": "9337939011", "qr_path": ""}}, upsert=True)
     await db.discounts.create_index("code", unique=True)
     await db.discounts.update_one({"code": "EARLY20"}, {"$setOnInsert": {"id": str(uuid.uuid4()), "code": "EARLY20", "percent": 20, "max_uses": 50, "uses": 0, "active": True, "created_at": now()}}, upsert=True)
+    if not await db.discounts.find_one({"featured": {"$exists": True}}):
+        await db.discounts.update_many({}, {"$set": {"featured": False}})
+        await db.discounts.update_one({"code": "EARLY20"}, {"$set": {"featured": True}})
 
 
 async def upload_seed_files():
@@ -166,15 +172,26 @@ def discounted(price: float, percent: int) -> float:
     return float(round(price * (100 - percent) / 100))
 
 
+def usable_filter_base() -> dict:
+    return {"active": True, "$or": [{"max_uses": None}, {"$expr": {"$lt": ["$uses", "$max_uses"]}}]}
+
+
 def usable_filter(code: str) -> dict:
-    return {"code": code.strip().upper(), "active": True,
-            "$or": [{"max_uses": None}, {"$expr": {"$lt": ["$uses", "$max_uses"]}}]}
+    return {"code": code.strip().upper(), **usable_filter_base()}
 
 
 async def find_product(product_id: str):
     item = await db.products.find_one({"id": product_id, "published": True}, {"_id": 0})
     if not item: raise HTTPException(404, "Product not found")
     return item
+
+
+@api_router.get("/store/promo")
+async def store_promo():
+    d = await db.discounts.find_one({**usable_filter_base(), "featured": True}, {"_id": 0})
+    if not d: return None
+    left = d["max_uses"] - d["uses"] if d.get("max_uses") else None
+    return {"code": d["code"], "percent": d["percent"], "remaining": left}
 
 
 @api_router.post("/discounts/validate")
@@ -285,8 +302,31 @@ async def upload_product_file(product_id: str, file: UploadFile = File(...), _: 
 async def orders(_: dict = Depends(admin_user)): return await db.orders.find({}, {"_id": 0}).sort("created_at", -1).to_list(200)
 
 
+async def email_customer(order: dict, request: Request) -> dict:
+    origin = request.headers.get("origin") or ""
+    parsed = urlparse(origin)
+    if parsed.scheme != "https" or not parsed.hostname:
+        result = {"email_status": "failed", "email_error": "Approve from the dashboard to send the email"}
+    else:
+        subject, html = approval_email(order, f"https://{parsed.netloc}/payment/success?session_id={order['session_id']}")
+        try:
+            await send_email(to=order["customer_email"], subject=subject, html=html)
+            result = {"email_status": "sent", "email_error": "", "emailed_at": now()}
+        except Exception as e:
+            result = {"email_status": "failed", "email_error": str(e)[:200]}
+    await db.orders.update_one({"id": order["id"]}, {"$set": result})
+    return await db.orders.find_one({"id": order["id"]}, {"_id": 0})
+
+
+@api_router.post("/admin/orders/{order_id}/resend-email")
+async def resend_email(order_id: str, request: Request, _: dict = Depends(admin_user)):
+    order = await db.orders.find_one({"id": order_id, "payment_status": "paid"}, {"_id": 0})
+    if not order: raise HTTPException(400, "Only approved orders can be emailed")
+    return await email_customer(order, request)
+
+
 @api_router.post("/admin/orders/{order_id}/{action}")
-async def review_order(order_id: str, action: str, _: dict = Depends(admin_user)):
+async def review_order(order_id: str, action: str, request: Request, _: dict = Depends(admin_user)):
     if action not in ("approve", "reject"): raise HTTPException(404, "Unknown action")
     status = "paid" if action == "approve" else "rejected"
     res = await db.orders.update_one({"id": order_id, "payment_status": "pending_review"}, {"$set": {"payment_status": status, "reviewed_at": now()}})
@@ -294,6 +334,8 @@ async def review_order(order_id: str, action: str, _: dict = Depends(admin_user)
     order = await db.orders.find_one({"id": order_id}, {"_id": 0})
     if status == "rejected" and order.get("discount_code"):
         await db.discounts.update_one({"code": order["discount_code"], "uses": {"$gt": 0}}, {"$inc": {"uses": -1}})
+    if status == "paid":
+        order = await email_customer(order, request)
     return order
 
 
@@ -305,7 +347,7 @@ async def list_discounts(_: dict = Depends(admin_user)):
 @api_router.post("/admin/discounts")
 async def create_discount(body: DiscountIn, _: dict = Depends(admin_user)):
     code = body.code.upper()
-    doc = {"id": str(uuid.uuid4()), "code": code, "percent": body.percent, "max_uses": body.max_uses, "uses": 0, "active": True, "created_at": now()}
+    doc = {"id": str(uuid.uuid4()), "code": code, "percent": body.percent, "max_uses": body.max_uses, "uses": 0, "active": True, "featured": False, "created_at": now()}
     try:
         await db.discounts.insert_one(doc)
     except DuplicateKeyError:
@@ -316,7 +358,11 @@ async def create_discount(body: DiscountIn, _: dict = Depends(admin_user)):
 
 @api_router.patch("/admin/discounts/{discount_id}")
 async def toggle_discount(discount_id: str, body: DiscountToggle, _: dict = Depends(admin_user)):
-    res = await db.discounts.update_one({"id": discount_id}, {"$set": {"active": body.active}})
+    changes = body.model_dump(exclude_none=True)
+    if not changes: raise HTTPException(400, "Nothing to update")
+    if changes.get("featured"):
+        await db.discounts.update_many({"id": {"$ne": discount_id}}, {"$set": {"featured": False}})
+    res = await db.discounts.update_one({"id": discount_id}, {"$set": changes})
     if not res.matched_count: raise HTTPException(404, "Code not found")
     return await db.discounts.find_one({"id": discount_id}, {"_id": 0})
 

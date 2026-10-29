@@ -52,6 +52,7 @@ class CheckoutIn(BaseModel):
 
 
 class SubmitPaymentIn(BaseModel):
+    model_config = {"str_strip_whitespace": True}
     transaction_id: str = Field(min_length=6, max_length=40)
 
 
@@ -165,6 +166,7 @@ async def download(session_id: str):
     order = await db.orders.find_one({"session_id": session_id, "payment_status": "paid"}, {"_id": 0})
     if not order: raise HTTPException(404, "Download unavailable")
     p = await db.products.find_one({"id": order["product_id"]}, {"_id": 0})
+    if not p: raise HTTPException(404, "Product no longer available")
     name = p.get("file_name") or "morrow-download.txt"
     if p.get("storage_path"):
         data, ctype = get_object(p["storage_path"])
@@ -227,8 +229,8 @@ async def orders(_: dict = Depends(admin_user)): return await db.orders.find({},
 async def review_order(order_id: str, action: str, _: dict = Depends(admin_user)):
     if action not in ("approve", "reject"): raise HTTPException(404, "Unknown action")
     status = "paid" if action == "approve" else "rejected"
-    res = await db.orders.update_one({"id": order_id}, {"$set": {"payment_status": status, "reviewed_at": now()}})
-    if not res.matched_count: raise HTTPException(404, "Order not found")
+    res = await db.orders.update_one({"id": order_id, "payment_status": "pending_review"}, {"$set": {"payment_status": status, "reviewed_at": now()}})
+    if not res.matched_count: raise HTTPException(400, "Only orders waiting for review can be approved or rejected")
     return await db.orders.find_one({"id": order_id}, {"_id": 0})
 
 

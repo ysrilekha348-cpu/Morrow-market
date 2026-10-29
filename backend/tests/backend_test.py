@@ -26,31 +26,7 @@ def test_public_products_and_detail(client):
     assert detail.json()["id"] == products[0]["id"]
 
 
-def test_demo_checkout_status_and_paid_download(client):
-    products = client.get(f"{BASE_URL}/api/products").json()
-    product = products[0]
-    checkout = client.post(
-        f"{BASE_URL}/api/payments/checkout",
-        json={
-            "product_id": product["id"],
-            "customer_email": "TEST_ui@example.com",
-            "origin_url": "https://example.test",
-        },
-    )
-    assert checkout.status_code == 200
-    checkout_data = checkout.json()
-    assert checkout_data["payment_status"] == "paid"
-    assert checkout_data["demo"] is True
-    session_id = checkout_data["session_id"]
-
-    status = client.get(f"{BASE_URL}/api/payments/status/{session_id}")
-    assert status.status_code == 200
-    assert status.json()["product_id"] == product["id"]
-
-    download = client.get(f"{BASE_URL}/api/downloads/{session_id}")
-    assert download.status_code == 200
-    assert product["name"] in download.text
-    assert "attachment" in download.headers.get("content-disposition", "")
+# Obsolete demo-checkout test removed (flow replaced by manual GPay, see test_gpay_flow.py)
 
 
 def test_download_rejects_unknown_session(client):

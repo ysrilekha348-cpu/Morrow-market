@@ -1,0 +1,36 @@
+{
+  "summary": "Tested percentage discount codes. Backend: 39/39 pytest pass, including 16 new discount tests in test_discounts.py. Admin discount endpoints return 401 with no token or a bad token. Validate is case-insensitive and trims whitespace; invalid, paused and used-up codes return 400. Checkout stores the discounted amount, original_amount, code and percent. max_uses is enforced, and 8 concurrent checkouts against max_uses=3 gave exactly 3 successes. Checkout without a code and the UTR submit still work. Frontend: invalid code shows the error, apply shows the strikethrough price, remove clears it, the pay page shows the discounted amount, and submit leads to the pending page. Desktop and mobile both checked. One UX bug: pressing Enter in the code field submits checkout at full price.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/payments/checkout", "issue": "A use is consumed when the order is created, not when payment is approved. Abandoned or rejected orders burn limited uses, and anyone can use up an 'early buyer' code by creating unpaid checkouts (public endpoint, no rate limit). Consider counting uses on approve, or releasing a use when an order is rejected or expires."},
+      {"endpoint": "POST /api/admin/discounts", "issue": "The find_one pre-check followed by insert can race; a duplicate insert would raise an unhandled DuplicateKeyError (500). Catch DuplicateKeyError and return 400."},
+      {"endpoint": "CheckoutIn.discount_code / ValidateDiscountIn.code", "issue": "No max_length on the code field (minor input validation gap)."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Checkout discount input", "issue": "Pressing Enter in discount-code-input submits the whole checkout form, which navigates to /pay at full price (₹499) without applying the code. The same thing happens silently if the user types a code and clicks Continue without clicking Apply. Fix: handle Enter in the code input to call apply() with preventDefault, and/or apply any typed but unapplied code on submit (or block submit with a hint).", "selector": "[data-testid=discount-code-input]", "priority": "MEDIUM"}
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": ["/app/backend/tests/test_discounts.py", "/app/backend/tests/test_gpay_flow.py", "/app/backend/tests/backend_test.py", "/app/test_reports/pytest/pytest_results.xml"],
+  "action_items": [
+    "Make Enter in discount-code-input apply the code instead of submitting checkout, and don't silently drop a typed but unapplied code.",
+    "Decide whether limited uses should be consumed at checkout creation (current behaviour, which lets unpaid orders exhaust a code) or at approval, or release a use on reject.",
+    "Catch DuplicateKeyError in create_discount and return 400."
+  ],
+  "critical_code_review_comments": [
+    "Atomic find_one_and_update with the $expr uses<max_uses filter is correct and race-safe (verified with concurrent requests).",
+    "The admin Discounts load() swallows errors (catch(()=>{})), so a failed list load shows the empty state with no message.",
+    "App.js is still minified into very long one-line components, which is hard to review."
+  ],
+  "updated_files": ["/app/backend/tests/test_discounts.py"],
+  "success_rate": {"backend": "100%", "frontend": "90%"},
+  "seed_data_creation": "Seeded TEST* discount codes directly in Mongo (test_database.discounts). They and the TEST_disc* orders were deleted afterwards; the discounts collection is empty again.",
+  "test_credentials": "No owner credentials (Clerk). The admin Discounts UI was not tested; only auth rejection was tested.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "test_discounts.py seeds TEST* codes directly in Mongo using dotenv_values for MONGO_URL/DB_NAME only, and cleans up afterwards. Run with REACT_APP_BACKEND_URL exported. The admin Discounts UI (new-discount-code, create-discount-button, discount-toggle-{CODE}) is untested because there is no owner session."
+}

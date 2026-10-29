@@ -3,6 +3,7 @@ from fastapi.responses import Response
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
+from pymongo.errors import DuplicateKeyError
 from pydantic import BaseModel, Field, EmailStr
 from typing import List, Optional
 from pathlib import Path
@@ -49,7 +50,7 @@ class Product(ProductIn):
 class CheckoutIn(BaseModel):
     product_id: str
     customer_email: EmailStr
-    discount_code: str = ""
+    discount_code: str = Field(default="", max_length=40)
 
 
 class DiscountIn(BaseModel):
@@ -64,7 +65,7 @@ class DiscountToggle(BaseModel):
 
 
 class ValidateDiscountIn(BaseModel):
-    code: str
+    code: str = Field(max_length=40)
     product_id: str
 
 
@@ -277,7 +278,10 @@ async def review_order(order_id: str, action: str, _: dict = Depends(admin_user)
     status = "paid" if action == "approve" else "rejected"
     res = await db.orders.update_one({"id": order_id, "payment_status": "pending_review"}, {"$set": {"payment_status": status, "reviewed_at": now()}})
     if not res.matched_count: raise HTTPException(400, "Only orders waiting for review can be approved or rejected")
-    return await db.orders.find_one({"id": order_id}, {"_id": 0})
+    order = await db.orders.find_one({"id": order_id}, {"_id": 0})
+    if status == "rejected" and order.get("discount_code"):
+        await db.discounts.update_one({"code": order["discount_code"], "uses": {"$gt": 0}}, {"$inc": {"uses": -1}})
+    return order
 
 
 @api_router.get("/admin/discounts")
@@ -288,9 +292,11 @@ async def list_discounts(_: dict = Depends(admin_user)):
 @api_router.post("/admin/discounts")
 async def create_discount(body: DiscountIn, _: dict = Depends(admin_user)):
     code = body.code.upper()
-    if await db.discounts.find_one({"code": code}): raise HTTPException(400, "A code with this name already exists")
     doc = {"id": str(uuid.uuid4()), "code": code, "percent": body.percent, "max_uses": body.max_uses, "uses": 0, "active": True, "created_at": now()}
-    await db.discounts.insert_one(doc)
+    try:
+        await db.discounts.insert_one(doc)
+    except DuplicateKeyError:
+        raise HTTPException(400, "A code with this name already exists")
     doc.pop("_id", None)
     return doc
 

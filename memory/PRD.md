@@ -19,8 +19,10 @@
 - 2026-06: Owner settings: edit GPay number, upload or replace QR. Per-product real file upload to object storage. Downloads are gated on paid status.
 - 2026-06: Prices in INR (₹499/₹899/₹299 seeds). Not-found states, error handling, useEffect dependency fix.
 
+- 2026-06: Percentage discount codes with an optional max-uses limit. Owner creates, pauses and resumes codes. Customers apply a code at checkout. A rejected order releases its use.
+
 ## Backlog
 - P0: Owner uploads the QR and real product files
 - P1: Razorpay automatic payments (needs RAZORPAY_KEY_ID/SECRET), which removes the manual approval step
 - P1: Email the customer when the order is approved, with the download link
-- P2: Edit/unpublish products and upload cover images from the dashboard; discount codes
+- P2: Edit/unpublish products and upload cover images from the dashboard

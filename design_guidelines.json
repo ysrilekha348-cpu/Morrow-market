@@ -1,0 +1,85 @@
+{
+  "app_name": "Digital Product Storefront",
+  "app_type": "e_commerce_hybrid",
+  "context_strategy": "E-Commerce & Digital Storefront / Organic Earthy Editorial Luxury",
+  "archetype": "ORGANIC & EARTHY / LUXURY",
+  "typography": {
+    "headings": {
+      "family": "Playfair Display, serif",
+      "weights": ["400", "600", "700"],
+      "classes": "font-serif tracking-tight"
+    },
+    "body": {
+      "family": "Plus Jakarta Sans, sans-serif",
+      "weights": ["400", "500", "600"],
+      "classes": "font-sans text-sm md:text-base leading-relaxed"
+    },
+    "mono": {
+      "family": "JetBrains Mono, monospace",
+      "classes": "font-mono text-xs"
+    }
+  },
+  "colors": {
+    "primary": "#2D3732",
+    "primary_foreground": "#F9F8F6",
+    "accent": "#C29B38",
+    "background": "#F9F8F6",
+    "surface": "#FFFFFF",
+    "card": "#FFFFFF",
+    "muted": "#718096",
+    "border": "#E2E8F0",
+    "forbidden_colors": ["#1B93A4", "#7351B7"],
+    "tinted_greys": true
+  },
+  "surface_strategies": {
+    "card_style": "Flat with crisp 1px subtle borders, generous internal padding p-8, no heavy shadows except subtle lift on hover.",
+    "glassmorphism": "backdrop-blur-xl bg-white/80 border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.06)]"
+  },
+  "layout_rules": {
+    "bento_grids": "Asymmetric grids with wide gaps (gap-8 to gap-12), generous spacing (p-12 to p-20), clear visual hierarchy.",
+    "containers": "Max-w-7xl mx-auto px-4 sm:px-6 lg:px-8",
+    "hero_overlay": "bg-black/30 with gradient fade"
+  },
+  "component_strategy": {
+    "shadcn_components": [
+      "Button",
+      "Input",
+      "Textarea",
+      "Dialog",
+      "Sheet",
+      "Tabs",
+      "DropdownMenu",
+      "Table",
+      "Badge",
+      "Card",
+      "Sonner",
+      "Select",
+      "Label",
+      "Separator"
+    ],
+    "custom_storefront_sections": [
+      "Hero Editorial Showcase",
+      "Category Filter Ribbon",
+      "Product Grid with Quick View & Instant Purchase",
+      "Product Detail Drawer/Modal with File Preview & Copy Editor",
+      "Owner Admin Portal (Product creation, File upload, Branding editor, Order fulfillment dashboard)",
+      "Secure Post-Payment Claimable Download Modal / Order Record"
+    ]
+  },
+  "motion_and_interactions": {
+    "library": "framer-motion",
+    "transitions": "transition: transform 0.2s ease, opacity 0.2s ease",
+    "hover_states": "Hover lift -translate-y-1 with subtle shadow-md"
+  },
+  "accessibility": {
+    "apca_contrast": "WCAG AA minimum 4.5:1 for normal text, 3:1 for large text",
+    "test_attributes": "All interactive and key informational elements MUST include `data-testid` attributes in kebab-case."
+  },
+  "image_urls": {
+    "hero_mockup": "https://images.unsplash.com/photo-1519764340700-3db40311f21e?crop=entropy&cs=srgb&fm=jpg&q=85",
+    "iphone_mockup": "https://images.unsplash.com/photo-1623824204241-f851d3bcfaf5?crop=entropy&cs=srgb&fm=jpg&q=85",
+    "laptop_mockup": "https://images.unsplash.com/photo-1604074131228-9d48b811bd80?crop=entropy&cs=srgb&fm=jpg&q=85",
+    "texture_bg": "https://images.unsplash.com/photo-1791516796152-742f9767530a?crop=entropy&cs=srgb&fm=jpg&q=85"
+  },
+  "instructions_to_main_agent": "Build a stunning, responsive Digital Product Storefront ('An app that will make money while i sleep') with automated digital delivery, one-time checkout (Stripe claimable setup), owner product management, private file storage simulation, order dashboard, category filtering, and editable branding and product copy. Ensure all interactive elements have data-testid attributes. Use Tailwind CSS and Shadcn primitives. Strictly adhere to design guidelines, gorgeous editorial typography, generous spacing, and smooth Framer Motion animations."
+}

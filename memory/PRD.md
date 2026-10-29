@@ -20,9 +20,10 @@
 - 2026-06: Prices in INR (₹499/₹899/₹299 seeds). Not-found states, error handling, useEffect dependency fix.
 
 - 2026-06: Percentage discount codes with an optional max-uses limit. Owner creates, pauses and resumes codes. Customers apply a code at checkout. A rejected order releases its use.
+- 2026-06: Real branded PDF workbooks (Weekly Reset 17pp, Quiet Brand Kit 9pp, Slow Content Calendar 10pp) built by scripts/make_workbooks.py into backend/seed_files/. They upload to object storage on startup if missing. Launch code EARLY20 (20% off, 50 uses) is seeded. Discounted prices round to whole rupees.
 
 ## Backlog
-- P0: Owner uploads the QR and real product files
+- P0: Owner uploads the QR
 - P1: Razorpay automatic payments (needs RAZORPAY_KEY_ID/SECRET), which removes the manual approval step
 - P1: Email the customer when the order is approved, with the download link
 - P2: Edit/unpublish products and upload cover images from the dashboard

@@ -20,6 +20,7 @@ db = client[os.environ["DB_NAME"]]
 app = FastAPI(title="Morrow Market API")
 api_router = APIRouter(prefix="/api")
 MAX_FILE_BYTES = 100 * 1024 * 1024
+SEED_DIR = ROOT_DIR / "seed_files"
 
 try:
     from clerk_auth import clerk_router, require_user
@@ -79,8 +80,8 @@ class SettingsIn(BaseModel):
 
 
 SEED = [
-    ("weekly-reset", "The Weekly Reset", "A gentle planning system for people who want their weeks to feel lighter, not louder.", 499, "Workbooks", "Bestseller", "photo-1517842645767-c639042777db", "weekly-reset.pdf"),
-    ("quiet-brand", "Quiet Brand Kit", "A considered visual direction kit for small brands ready to look like themselves.", 899, "Templates", "Fresh drop", "photo-1558655146-9f40138edfeb", "quiet-brand-kit.zip"),
+    ("weekly-reset", "The Weekly Reset", "A gentle planning system for people who want their weeks to feel lighter, not louder.", 499, "Workbooks", "Bestseller", "photo-1517842645767-c639042777db", "the-weekly-reset.pdf"),
+    ("quiet-brand", "Quiet Brand Kit", "A considered visual direction kit for small brands ready to look like themselves.", 899, "Templates", "Fresh drop", "photo-1558655146-9f40138edfeb", "quiet-brand-kit.pdf"),
     ("slow-content", "Slow Content Calendar", "30 thoughtful prompts to keep showing up without becoming a content machine.", 299, "Planning", "Popular", "photo-1499750310107-5fef28a66643", "slow-content-calendar.pdf"),
 ]
 OLD_USD_PRICES = {"weekly-reset": 18.0, "quiet-brand": 32.0, "slow-content": 12.0}
@@ -97,6 +98,17 @@ async def seed():
         await db.products.update_one({"id": i, "price": OLD_USD_PRICES[i]}, {"$set": {"price": float(p)}})
     await db.settings.update_one({"id": "store"}, {"$setOnInsert": {"id": "store", "gpay_number": "9337939011", "qr_path": ""}}, upsert=True)
     await db.discounts.create_index("code", unique=True)
+    await db.discounts.update_one({"code": "EARLY20"}, {"$setOnInsert": {"id": str(uuid.uuid4()), "code": "EARLY20", "percent": 20, "max_uses": 50, "uses": 0, "active": True, "created_at": now()}}, upsert=True)
+
+
+async def upload_seed_files():
+    for pid, *_, fname in SEED:
+        local = SEED_DIR / fname
+        if not local.exists() or await db.products.find_one({"id": pid, "storage_path": {"$exists": True}}):
+            continue
+        result = put_object(f"{APP_NAME}/products/{pid}/{uuid.uuid4()}.pdf", local.read_bytes(), "application/pdf")
+        await db.products.update_one({"id": pid}, {"$set": {"file_name": fname, "storage_path": result["path"], "file_content_type": "application/pdf", "file_size": local.stat().st_size}})
+        logger.info(f"Uploaded seed workbook {fname}")
 
 
 @app.on_event("startup")
@@ -104,8 +116,9 @@ async def startup():
     await seed()
     try:
         init_storage()
+        await upload_seed_files()
     except Exception as e:
-        logger.error(f"Storage init failed: {e}")
+        logger.error(f"Storage init/seed upload failed: {e}")
 
 
 async def read_upload(file: UploadFile) -> bytes:
@@ -150,7 +163,7 @@ async def store_qr():
 
 
 def discounted(price: float, percent: int) -> float:
-    return round(price * (100 - percent) / 100, 2)
+    return float(round(price * (100 - percent) / 100))
 
 
 def usable_filter(code: str) -> dict:

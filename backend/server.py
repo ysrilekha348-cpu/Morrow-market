@@ -37,7 +37,7 @@ def now(): return datetime.now(timezone.utc).isoformat()
 class ProductIn(BaseModel):
     name: str
     description: str
-    price: float = Field(gt=0)
+    price: float = Field(ge=0)
     category: str = "Guides"
     tag: str = "New"
     image_url: str = ""
@@ -86,6 +86,8 @@ SEED = [
     ("weekly-reset", "The Weekly Reset", "A gentle planning system for people who want their weeks to feel lighter, not louder.", 499, "Workbooks", "Bestseller", "photo-1517842645767-c639042777db", "the-weekly-reset.pdf"),
     ("quiet-brand", "Quiet Brand Kit", "A considered visual direction kit for small brands ready to look like themselves.", 899, "Templates", "Fresh drop", "photo-1558655146-9f40138edfeb", "quiet-brand-kit.pdf"),
     ("slow-content", "Slow Content Calendar", "30 thoughtful prompts to keep showing up without becoming a content machine.", 299, "Planning", "Popular", "photo-1499750310107-5fef28a66643", "slow-content-calendar.pdf"),
+    ("free-planner", "A Calmer Week", "A beautifully simple weekly planner for making space for what matters.", 0, "Free templates", "Free", "photo-1506784983877-45594efa4cbe", "free-weekly-planner.pdf"),
+    ("free-moodboard", "Brand Moodboard", "A guided one-page exercise to find the colours, textures and words that feel like you.", 0, "Free templates", "Free", "photo-1542744095-fcf48d80b0fd", "free-brand-moodboard.pdf"),
 ]
 OLD_USD_PRICES = {"weekly-reset": 18.0, "quiet-brand": 32.0, "slow-content": 12.0}
 
@@ -97,8 +99,11 @@ async def seed():
              "image_url": f"https://images.unsplash.com/{img}?auto=format&fit=crop&w=1000&q=85",
              "published": True, "file_name": f, "created_at": now()}
             for i, n, d, p, c, t, img, f in SEED])
+    for i, n, d, p, c, t, img, f in SEED:
+        await db.products.update_one({"id": i}, {"$setOnInsert": {"id": i, "name": n, "description": d, "price": float(p), "category": c, "tag": t, "image_url": f"https://images.unsplash.com/{img}?auto=format&fit=crop&w=1000&q=85", "published": True, "file_name": f, "created_at": now()}}, upsert=True)
     for i, _, _, p, *_ in SEED:
-        await db.products.update_one({"id": i, "price": OLD_USD_PRICES[i]}, {"$set": {"price": float(p)}})
+        if i in OLD_USD_PRICES:
+            await db.products.update_one({"id": i, "price": OLD_USD_PRICES[i]}, {"$set": {"price": float(p)}})
     await db.settings.update_one({"id": "store"}, {"$setOnInsert": {"id": "store", "gpay_number": "9337939011", "qr_path": ""}}, upsert=True)
     await db.discounts.create_index("code", unique=True)
     await db.discounts.update_one({"code": "EARLY20"}, {"$setOnInsert": {"id": str(uuid.uuid4()), "code": "EARLY20", "percent": 20, "max_uses": 50, "uses": 0, "active": True, "created_at": now()}}, upsert=True)
@@ -203,7 +208,7 @@ async def validate_discount(body: ValidateDiscountIn):
 
 
 @api_router.post("/payments/checkout")
-async def checkout(body: CheckoutIn):
+async def checkout(body: CheckoutIn, request: Request):
     item = await find_product(body.product_id)
     amount, code, percent = item["price"], "", 0
     if body.discount_code.strip():
@@ -214,9 +219,12 @@ async def checkout(body: CheckoutIn):
     await db.orders.insert_one({
         "id": str(uuid.uuid4()), "session_id": session_id, "product_id": item["id"], "product_name": item["name"],
         "amount": amount, "original_amount": item["price"], "discount_code": code, "discount_percent": percent,
-        "customer_email": body.customer_email, "payment_method": "gpay",
-        "payment_status": "awaiting_payment", "transaction_id": "", "created_at": now()})
-    return {"session_id": session_id}
+        "customer_email": body.customer_email, "payment_method": "free" if amount == 0 else "gpay",
+        "payment_status": "paid" if amount == 0 else "awaiting_payment", "transaction_id": "", "created_at": now()})
+    order = await db.orders.find_one({"session_id": session_id}, {"_id": 0})
+    if amount == 0:
+        await email_customer(order, request)
+    return {"session_id": session_id, "free": amount == 0}
 
 
 ORDER_PUBLIC = {"_id": 0, "session_id": 1, "payment_status": 1, "product_id": 1, "product_name": 1, "amount": 1, "original_amount": 1, "discount_code": 1, "discount_percent": 1, "customer_email": 1}
@@ -231,6 +239,11 @@ async def payment_status(session_id: str):
 
 @api_router.post("/payments/{session_id}/submit")
 async def submit_payment(session_id: str, body: SubmitPaymentIn):
+    order = await db.orders.find_one({"session_id": session_id, "payment_status": {"$in": ["awaiting_payment", "rejected"]}}, {"_id": 0})
+    if not order: raise HTTPException(400, "This order can't accept a payment reference")
+    if order.get("payment_status") == "rejected" and order.get("discount_code"):
+        d = await db.discounts.find_one_and_update(usable_filter(order["discount_code"]), {"$inc": {"uses": 1}})
+        if not d: raise HTTPException(400, "This discount code has run out")
     res = await db.orders.update_one(
         {"session_id": session_id, "payment_status": {"$in": ["awaiting_payment", "rejected"]}},
         {"$set": {"transaction_id": body.transaction_id.strip(), "payment_status": "pending_review", "submitted_at": now()}})
@@ -360,6 +373,8 @@ async def create_discount(body: DiscountIn, _: dict = Depends(admin_user)):
 async def toggle_discount(discount_id: str, body: DiscountToggle, _: dict = Depends(admin_user)):
     changes = body.model_dump(exclude_none=True)
     if not changes: raise HTTPException(400, "Nothing to update")
+    existing = await db.discounts.find_one({"id": discount_id})
+    if not existing: raise HTTPException(404, "Code not found")
     if changes.get("featured"):
         await db.discounts.update_many({"id": {"$ne": discount_id}}, {"$set": {"featured": False}})
     res = await db.discounts.update_one({"id": discount_id}, {"$set": changes})

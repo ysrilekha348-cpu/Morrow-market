@@ -21,6 +21,7 @@
 
 - 2026-06: Percentage discount codes with an optional max-uses limit. Owner creates, pauses and resumes codes. Customers apply a code at checkout. A rejected order releases its use.
 - 2026-06: Real branded PDF workbooks (Weekly Reset 17pp, Quiet Brand Kit 9pp, Slow Content Calendar 10pp) built by scripts/make_workbooks.py into backend/seed_files/. They upload to object storage on startup if missing. Launch code EARLY20 (20% off, 50 uses) is seeded. Discounted prices round to whole rupees.
+- 2026-06: Added interactive product browsing (quick view, save/favourite buttons), workbook preview carousel, checkout progress feedback, order filters, two free downloadable templates, instant free delivery emails, and instant free PDF downloads.
 
 ## Backlog
 - P0: Owner uploads the QR

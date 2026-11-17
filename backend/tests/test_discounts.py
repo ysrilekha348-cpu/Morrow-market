@@ -58,7 +58,7 @@ def test_validate_case_insensitive(s):
     r = s.post(f"{BASE_URL}/api/discounts/validate", json={"code": "  testtwenty ", "product_id": "weekly-reset"})
     assert r.status_code == 200, r.text
     d = r.json()
-    assert d == {"code": "TESTTWENTY", "percent": 20, "original": 499, "final": 399.2}
+    assert d == {"code": "TESTTWENTY", "percent": 20, "original": 499, "final": 399}
     assert uses("TESTTWENTY") == 0  # validate does not consume
 
 
@@ -80,7 +80,7 @@ def test_checkout_with_code(s):
     assert r.status_code == 200, r.text
     sid = r.json()["session_id"]
     o = s.get(f"{BASE_URL}/api/payments/status/{sid}").json()
-    assert o["amount"] == 719.2 and o["original_amount"] == 899
+    assert o["amount"] == 719 and o["original_amount"] == 899
     assert o["discount_code"] == "TESTTWENTY" and o["discount_percent"] == 20
     assert o["payment_status"] == "awaiting_payment"
     assert uses("TESTTWENTY") == 1

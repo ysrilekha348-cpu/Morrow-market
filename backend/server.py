@@ -258,7 +258,8 @@ async def checkout(body: CheckoutIn, request: Request, background_tasks: Backgro
         claims = await db.orders.count_documents({"customer_email": body.customer_email, "amount": 0, "created_at": {"$gte": since}})
         if claims >= 3: raise HTTPException(429, "Please try again later for another free template")
     if body.discount_code.strip() and item["price"] > 0:
-        d = await db.discounts.find_one_and_update(usable_filter(body.discount_code), {"$inc": {"uses": 1}})
+        # Validate at checkout, but count a use only after the customer submits a UTR.
+        d = await db.discounts.find_one(usable_filter(body.discount_code), {"_id": 0})
         if not d: raise HTTPException(400, "This code isn't valid or has run out")
         code, percent, amount = d["code"], d["percent"], discounted(item["price"], d["percent"])
     session_id = uuid.uuid4().hex
@@ -287,12 +288,20 @@ async def payment_status(session_id: str):
 async def submit_payment(session_id: str, body: SubmitPaymentIn):
     order = await db.orders.find_one({"session_id": session_id, "payment_status": {"$in": ["awaiting_payment", "rejected"]}}, {"_id": 0})
     if not order: raise HTTPException(400, "This order can't accept a payment reference")
-    if order.get("payment_status") == "rejected" and order.get("discount_code"):
-        d = await db.discounts.find_one_and_update(usable_filter(order["discount_code"]), {"$inc": {"uses": 1}})
-        if not d: raise HTTPException(400, "This discount code has run out")
+    transaction_id = body.transaction_id.strip().upper()
+    duplicate = await db.orders.find_one(
+        {"transaction_id": transaction_id, "session_id": {"$ne": session_id}},
+        {"_id": 0, "id": 1})
+    if duplicate:
+        raise HTTPException(409, "This transaction ID has already been submitted")
+    if order.get("discount_code"):
+        discount = await db.discounts.find_one_and_update(
+            usable_filter(order["discount_code"]), {"$inc": {"uses": 1}})
+        if not discount:
+            raise HTTPException(400, "This discount code has run out")
     res = await db.orders.update_one(
         {"session_id": session_id, "payment_status": {"$in": ["awaiting_payment", "rejected"]}},
-        {"$set": {"transaction_id": body.transaction_id.strip(), "payment_status": "pending_review", "submitted_at": now()}})
+        {"$set": {"transaction_id": transaction_id, "payment_status": "pending_review", "submitted_at": now()}})
     if not res.matched_count: raise HTTPException(400, "This order can't accept a payment reference")
     return await db.orders.find_one({"session_id": session_id}, ORDER_PUBLIC)
 

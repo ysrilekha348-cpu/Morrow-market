@@ -25,6 +25,9 @@
 - 2026-06: Added interactive browsing, favourites, quick-view, preview carousel, checkout progress, order filters, two free templates, instant free delivery, copy-safe email text, and light free-download throttling.
 - 2026-06: Added 15 new paid, useful templates across finance, business, planning, career, home and wellbeing. Finance products include printable PDFs; selected trackers include editable spreadsheet bundles packaged with the PDF. Prices range ₹99–₹499.
 
+- 2026-06: Added 10 more paid templates: Study Sprint Planner, Reading Journal, Wedding Planning Budget, Travel Itinerary Planner, Moving Home Checklist, Pet Care Tracker, Gentle Fitness Log, Digital Detox Planner, Gift Planning List and Course Launch Planner. Catalog now has 30 products (28 paid, 2 free).
+- 2026-06: Regenerated paid workbook content with title-specific previews, unique content and PDF/XLSX bundles. Seed uploads use SHA-256 hashes and the Content Batch cover migration is applied to existing records.
+
 ## Backlog
 - P0: Owner uploads the QR
 - P1: Razorpay automatic payments (needs RAZORPAY_KEY_ID/SECRET), which removes the manual approval step

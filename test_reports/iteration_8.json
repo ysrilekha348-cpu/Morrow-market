@@ -1,0 +1,37 @@
+{
+  "summary": "Iteration 8: tested the 10 new paid templates and ran regressions. Backend: full serial suite 155/156 passing after updating the outdated count in the iteration 7 test from 20 to 30. /api/products returns 30 products (28 paid, 2 free). All 10 new ids have the correct price, category and file_name, and every detail endpoint works. Paid downloads for all 10 work: PDFs start with %PDF, the wedding-planner and course-launch ZIPs each hold a valid PDF and XLSX, each served file is byte-identical to its local seed file, and all 10 are distinct. The first 15 still serve the regenerated files. EARLY20 (299->239), GPay submit to pending_review, the free flow and admin 401s all pass. Frontend: 30 cards, all prices in INR, no console errors, no horizontal page overflow on desktop or mobile (390px), search works, and category testids are slugged with no spaces. Two features failed: (1) the 10 new products all show the generic preview text 'A gentler way to plan', so Wedding Planning Budget and Course Launch Planner previews are not distinct; (2) the Content Batch image change never reached the DB, so it still shares an image with Slow Content.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "seed() in server.py", "issue": "The Content Batch image change in SEED is not applied because seed uses $setOnInsert for existing products. In the DB, content-batch.image_url is still photo-1499750310107-5fef28a66643, the same image as slow-content, so /api/products has a duplicate image. Any later SEED edits to name, description, category or image will also not reach existing rows. Fix with a one-off targeted $set (for example update_one({'id':'content-batch','image_url':<old>},{'$set':{'image_url':<new>}})) or a per-field migration."},
+      {"endpoint": "upload_seed_files", "issue": "Changes are detected by file size only, so a regenerated file with exactly the same byte size will not be re-uploaded. Consider a sha256 hash instead."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "WorkbookPreview / previewText (App.js line 15)", "issue": "previewText has entries only for the first 15 paid ids. All 10 new products (study-planner, reading-journal, wedding-planner, travel-planner, moving-home, pet-care, fitness-log, digital-detox, gift-planner, course-launch) fall back to the generic copy 'A gentler way to plan / Clear your head... / Four weeks of pages'. Verified in the UI: money-map shows 'Map every rupee', but wedding-planner, course-launch and study-planner all show 'A gentler way to plan'.", "selector": "[data-testid=open-workbook-preview] -> .preview-stage", "priority": "MEDIUM"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Storefront filter row (desktop 1920)", "issues": ["15 category pills overflow the .pills container (scrollWidth 1388 vs clientWidth 1049, overflow-x auto). 'Free templates', 'Workbooks' and 'Templates' sit off-screen to the right behind a horizontal scroll that is easy to miss, so desktop users may never find the Free templates filter. Consider wrapping pills onto two lines, placing search on its own row, or adding a scroll fade or arrow affordance."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_iteration8_more_templates.py", "/app/backend/tests/test_iteration7_paid_templates.py", "/app/test_reports/pytest/pytest_results_iter8.xml"],
+  "action_items": [
+    "Add previewText entries in App.js for the 10 new ids (at minimum wedding-planner and course-launch), or better, store preview copy on the product doc or in a separate data module",
+    "Apply the new Content Batch image to the existing DB row (seed $setOnInsert never updates it); it currently duplicates slow-content's image",
+    "Make the desktop category pills wrap or otherwise show that they scroll so Free templates, Workbooks and Templates are visible"
+  ],
+  "critical_code_review_comments": [
+    "App.js is 37 extremely long minified-style lines with all components inline. Split it into components/ and data/ modules (previewText especially) for maintainability.",
+    "seed() cannot update existing products, so catalog edits made in SEED silently do nothing in existing environments.",
+    "upload_seed_files compares file_size only; use a content hash."
+  ],
+  "updated_files": ["/app/backend/tests/test_iteration8_more_templates.py (new)", "/app/backend/tests/test_iteration7_paid_templates.py (product count 20 -> 30)"],
+  "success_rate": {"backend": "99% (155/156; the one failure is the duplicate Content Batch image)", "frontend": "85% (all tested except distinct preview copy for the new products)"},
+  "test_credentials": "No auth needed for the tested flows; admin endpoints were checked only for 401/403 without a token.",
+  "seed_data_creation": "None. All test orders this run created were deleted by session_id, and EARLY20 was restored and verified as uses=0, active=true, featured=true. Six orders existed before testing and were left untouched: a@b.com x3, buyer@example.com, x@y.com and pinkydas348@gmail.com (looks real). None were created by this run.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Run: export REACT_APP_BACKEND_URL=$(grep REACT_APP_BACKEND_URL /app/frontend/.env | cut -d= -f2); cd /app/backend; pytest tests/ -n 0. test_iteration8 checks for unique images, which fails until the content-batch image is fixed in the DB. Preview text lives in .preview-stage after clicking [data-testid=open-workbook-preview] on /product/{id}. Category pill testids are category-{slug}. Product cards use [data-testid^=product-card-]."
+}

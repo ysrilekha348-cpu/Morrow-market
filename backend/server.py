@@ -9,7 +9,7 @@ from typing import List, Optional
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
 import mimetypes
-import os, uuid, logging
+import os, uuid, logging, hashlib
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / ".env")
@@ -130,6 +130,7 @@ async def seed():
     for i, _, _, p, *_ in SEED:
         if i in OLD_USD_PRICES:
             await db.products.update_one({"id": i, "price": OLD_USD_PRICES[i]}, {"$set": {"price": float(p)}})
+    await db.products.update_one({"id": "content-batch", "image_url": "https://images.unsplash.com/photo-1499750310107-5fef28a66643?auto=format&fit=crop&w=1000&q=85"}, {"$set": {"image_url": "https://images.unsplash.com/photo-1553877522-43269d4ea984?auto=format&fit=crop&w=1000&q=85"}})
     await db.settings.update_one({"id": "store"}, {"$setOnInsert": {"id": "store", "gpay_number": "9337939011", "qr_path": ""}}, upsert=True)
     await db.discounts.create_index("code", unique=True)
     await db.discounts.update_one({"code": "EARLY20"}, {"$setOnInsert": {"id": str(uuid.uuid4()), "code": "EARLY20", "percent": 20, "max_uses": 50, "uses": 0, "active": True, "created_at": now()}}, upsert=True)
@@ -141,13 +142,17 @@ async def seed():
 async def upload_seed_files():
     for pid, *_, fname in SEED:
         local = SEED_DIR / fname
-        existing = await db.products.find_one({"id": pid}, {"_id": 0, "storage_path": 1, "file_size": 1})
-        if not local.exists() or existing and existing.get("storage_path") and existing.get("file_size") == local.stat().st_size:
+        existing = await db.products.find_one({"id": pid}, {"_id": 0, "storage_path": 1, "file_size": 1, "file_hash": 1})
+        if not local.exists():
+            continue
+        data = local.read_bytes()
+        file_hash = hashlib.sha256(data).hexdigest()
+        if existing and existing.get("storage_path") and existing.get("file_hash") == file_hash:
             continue
         ext = local.suffix or ".bin"
         ctype = mimetypes.guess_type(local.name)[0] or "application/octet-stream"
-        result = put_object(f"{APP_NAME}/products/{pid}/{uuid.uuid4()}{ext}", local.read_bytes(), ctype)
-        await db.products.update_one({"id": pid}, {"$set": {"file_name": fname, "storage_path": result["path"], "file_content_type": ctype, "file_size": local.stat().st_size}})
+        result = put_object(f"{APP_NAME}/products/{pid}/{uuid.uuid4()}{ext}", data, ctype)
+        await db.products.update_one({"id": pid}, {"$set": {"file_name": fname, "storage_path": result["path"], "file_content_type": ctype, "file_size": len(data), "file_hash": file_hash}})
         logger.info(f"Uploaded seed workbook {fname}")
 
 

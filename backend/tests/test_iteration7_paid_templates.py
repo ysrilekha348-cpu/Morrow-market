@@ -59,7 +59,7 @@ class TestCatalog:
         r = requests.get(f"{BASE_URL}/api/products")
         assert r.status_code == 200
         data = {p["id"]: p for p in r.json()}
-        assert len(r.json()) == 20, [p["id"] for p in r.json()]
+        assert len(r.json()) == 30, [p["id"] for p in r.json()]  # iteration 8 added 10 more
         for pid, (price, cat, fname) in NEW.items():
             assert pid in data, pid
             assert data[pid]["price"] == price and data[pid]["price"] > 0

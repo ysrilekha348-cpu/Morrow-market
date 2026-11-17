@@ -18,11 +18,12 @@ def init_storage(force: bool = False):
 
 
 def _request(method: str, path: str, **kw):
-    for attempt in range(2):
-        resp = requests.request(method, f"{STORAGE_URL}/objects/{path}", headers={"X-Storage-Key": init_storage(force=attempt > 0), **kw.pop("headers", {})}, **kw)
-        if resp.status_code != 404 or attempt:
-            resp.raise_for_status()
-            return resp
+    extra_headers = kw.pop("headers", {})
+    url = f"{STORAGE_URL}/objects/{path}"
+    resp = requests.request(method, url, headers={"X-Storage-Key": init_storage(), **extra_headers}, **kw)
+    if resp.status_code == 404:
+        resp = requests.request(method, url, headers={"X-Storage-Key": init_storage(force=True), **extra_headers}, **kw)
+    resp.raise_for_status()
     return resp
 
 

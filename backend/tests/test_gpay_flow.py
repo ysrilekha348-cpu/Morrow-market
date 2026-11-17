@@ -59,8 +59,18 @@ def test_checkout_unknown_product(s):
     assert r.status_code == 404
 
 
+def submit(s, sid, txn):
+    return s.post(f"{BASE_URL}/api/payments/{sid}/submit", json={"transaction_id": txn})
+
+
+def pending_order(s):
+    sid = new_order(s, "quiet-brand")
+    assert submit(s, sid, "412345678901").status_code == 200
+    return sid
+
+
 # Checkout -> status -> submit -> download gating
-def test_full_flow(s):
+def test_new_order_awaits_payment(s):
     sid = new_order(s, "quiet-brand")
     st = s.get(f"{BASE_URL}/api/payments/status/{sid}").json()
     assert st["payment_status"] == "awaiting_payment"
@@ -68,23 +78,30 @@ def test_full_flow(s):
     assert "transaction_id" not in st
     assert s.get(f"{BASE_URL}/api/downloads/{sid}").status_code == 404
 
-    assert s.post(f"{BASE_URL}/api/payments/{sid}/submit", json={"transaction_id": "123"}).status_code == 422
-    assert s.post(f"{BASE_URL}/api/payments/{sid}/submit", json={"transaction_id": "x" * 41}).status_code == 422
-    r = s.post(f"{BASE_URL}/api/payments/{sid}/submit", json={"transaction_id": "412345678901"})
+
+def test_submit_validates_and_moves_to_review(s):
+    sid = new_order(s, "quiet-brand")
+    assert submit(s, sid, "123").status_code == 422
+    assert submit(s, sid, "x" * 41).status_code == 422
+    r = submit(s, sid, "412345678901")
     assert r.status_code == 200 and r.json()["payment_status"] == "pending_review"
     assert db.orders.find_one({"session_id": sid})["transaction_id"] == "412345678901"
-    # Second submit while pending is rejected
-    assert s.post(f"{BASE_URL}/api/payments/{sid}/submit", json={"transaction_id": "999999999"}).status_code == 400
+
+
+def test_pending_order_locked(s):
+    sid = pending_order(s)
+    assert submit(s, sid, "999999999").status_code == 400
     assert s.get(f"{BASE_URL}/api/downloads/{sid}").status_code == 404
 
-    # Simulate owner approve
+
+def test_paid_order_downloads(s):
+    sid = pending_order(s)
     db.orders.update_one({"session_id": sid}, {"$set": {"payment_status": "paid"}})
     d = s.get(f"{BASE_URL}/api/downloads/{sid}")
     assert d.status_code == 200
     assert "attachment" in d.headers["content-disposition"]
-    assert "Quiet Brand Kit" in d.text or len(d.content) > 0
-    # Paid order can't be resubmitted
-    assert s.post(f"{BASE_URL}/api/payments/{sid}/submit", json={"transaction_id": "999999999"}).status_code == 400
+    assert len(d.content) > 0
+    assert submit(s, sid, "999999999").status_code == 400
 
 
 def test_rejected_can_resubmit(s):

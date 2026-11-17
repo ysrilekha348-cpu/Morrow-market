@@ -297,15 +297,21 @@ async def submit_payment(session_id: str, body: SubmitPaymentIn):
         {"_id": 0, "id": 1})
     if duplicate:
         raise HTTPException(409, "This transaction ID has already been submitted")
+    previous_status = order["payment_status"]
+    # Claim the order first so two simultaneous submissions cannot consume a coupon twice.
+    res = await db.orders.update_one(
+        {"session_id": session_id, "payment_status": {"$in": ["awaiting_payment", "rejected"]}},
+        {"$set": {"transaction_id": transaction_id, "payment_status": "pending_review", "submitted_at": now()}})
+    if not res.matched_count:
+        raise HTTPException(400, "This order can't accept a payment reference")
     if order.get("discount_code"):
         discount = await db.discounts.find_one_and_update(
             usable_filter(order["discount_code"]), {"$inc": {"uses": 1}})
         if not discount:
+            await db.orders.update_one(
+                {"session_id": session_id, "payment_status": "pending_review", "transaction_id": transaction_id},
+                {"$set": {"payment_status": previous_status, "transaction_id": ""}, "$unset": {"submitted_at": ""}})
             raise HTTPException(400, "This discount code has run out")
-    res = await db.orders.update_one(
-        {"session_id": session_id, "payment_status": {"$in": ["awaiting_payment", "rejected"]}},
-        {"$set": {"transaction_id": transaction_id, "payment_status": "pending_review", "submitted_at": now()}})
-    if not res.matched_count: raise HTTPException(400, "This order can't accept a payment reference")
     return await db.orders.find_one({"session_id": session_id}, ORDER_PUBLIC)
 
 

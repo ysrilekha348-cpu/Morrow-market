@@ -1,0 +1,38 @@
+{
+  "summary": "Iteration 6 retest of the iteration_5 fixes. Backend: ran all tests serially (-n 0), 80/80 pass. That covers the 2 in-process email tests in test_free_templates.py, which I rewrote for the new BackgroundTasks signature, plus a new test_iteration6_free_fixes.py. Verified: free checkout with EARLY20 or a bogus code does not increment uses and stores discount_code ''; the free email has the FREE TEMPLATE READY copy with no GPay or PAYMENT CONFIRMED; the paid email still says PAYMENT CONFIRMED and GPay; the free checkout response comes back in under 5s while the email is sent in a background task (a real send to delivered@resend.dev came back email_status=sent); a resubmit after rejection is blocked when the code is used up and charges one use when the code is still available; the promo endpoint works; admin GET and mutation endpoints return 401 without auth. Frontend (desktop 1920 and mobile 390): the promo banner shows on the home page and the paid product page and is hidden on free product pages; dismiss stays hidden for the session; paid checkout auto-applies EARLY20 and shows ₹499 struck through with ₹399, and its intro says 'pay with GPay'; free checkout shows Free, has no discount field, marks step 02 'Free download' active, says 'instantly', and the submit button reads 'Get my free template'; the free success page shows TEMPLATE READY and downloads a real PDF (free-weekly-planner.pdf); quick view, saved items surviving a reload, and the workbook preview (1/3 to 3/3, prev disabled on page 1 and next disabled on page 3, close) all work; no horizontal overflow; no console errors. Found 2 minor copy/design issues.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "email_service.approval_email", "issue": "The free email footer still says 'Sent by Morrow Market because you bought from our store'. A free template was not bought; suggest 'because you ordered from our store' when is_free."},
+      {"endpoint": "POST /api/payments/checkout (free)", "issue": "Free checkout has no rate limit and sends a real email to any address supplied. It could be abused to spam arbitrary inboxes. Consider light throttling per email or IP."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Checkout intro (free)", "issue": "Missing period: renders 'we'll send your template instantly No account needed.' The free branch string needs a trailing '.' (App.js Checkout: \"we'll send your template instantly.\").", "selector": ".checkout-panel > div p", "priority": "LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Workbook preview modal at 390px", "issues": ["The page counter wraps onto two lines ('2 /' then '3') because .preview-head>span has padding-right:44px and no white-space:nowrap. Add white-space:nowrap and flex-shrink:0.", "The sheet is narrow on mobile: with the 42px modal padding plus the 28px arrow columns, the h3 wraps to 6–8 lines. Consider reducing .modal-card padding to about 24px under 800px."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_iteration6_free_fixes.py", "/app/backend/tests/test_free_templates.py", "/app/backend/tests/test_discounts.py", "/app/backend/tests/test_gpay_flow.py", "/app/backend/tests/test_promo_email.py", "/app/backend/tests/backend_test.py", "/app/test_reports/pytest/pytest_results.xml"],
+  "action_items": [
+    "Add the missing period to the free checkout intro copy",
+    "Preview counter on mobile: add white-space:nowrap to .preview-head>span; reduce modal-card padding on mobile",
+    "Optional: free email footer wording 'bought' -> 'ordered'",
+    "Optional: throttle free checkout email sends"
+  ],
+  "critical_code_review_comments": [
+    "is_admin() returns True when CLERK_SECRET_KEY == ''. This fails open if the key is ever set to blank; prefer failing closed.",
+    "The Success page keeps polling every 15s even after payment_status is 'paid' (free orders are paid instantly). Stop the interval once paid.",
+    "The CheckoutProgress prop name 'hasDiscount' controls whether step 02 is active. Works, but the semantics are confusing.",
+    "The admin add-product price input has min=1, so the owner cannot create new free templates from the UI (backend allows ge=0). Confirm this is intended."
+  ],
+  "updated_files": ["/app/backend/tests/test_free_templates.py (in-process email tests updated for the BackgroundTasks signature; polling for email_status)", "/app/backend/tests/test_iteration6_free_fixes.py (new)"],
+  "success_rate": {"backend": "100% (80/80)", "frontend": "~97% (all flows pass; 1 copy typo, 1 mobile counter wrap)"},
+  "seed_data_creation": "None. Test orders were deleted by session id. EARLY20 uses was restored to 0 (verified). The 8 pre-existing orders are untouched.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Run pytest with -n 0 (shared EARLY20 state). The in-process tests call server.checkout(body, req, BackgroundTasks()) and then await bt(). Use data-testid=preview-page-indicator for the counter. Owner dashboard needs the owner's Clerk login, so it was code-reviewed only. Real emails only to delivered@resend.dev."
+}

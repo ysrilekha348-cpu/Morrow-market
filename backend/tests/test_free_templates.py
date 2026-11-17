@@ -64,7 +64,11 @@ def test_free_checkout_instant_and_download(pid):
     assert d["free"] is True and isinstance(d["session_id"], str)
     st = requests.get(f"{BASE_URL}/api/payments/status/{d['session_id']}").json()
     assert st["payment_status"] == "paid" and st["amount"] == 0 and st["discount_code"] == ""
-    order = db.orders.find_one({"session_id": d["session_id"]})
+    import time
+    for _ in range(20):
+        order = db.orders.find_one({"session_id": d["session_id"]})
+        if order.get("email_status"): break
+        time.sleep(0.25)
     assert order["payment_method"] == "free"
     assert order.get("email_status") in ("failed", "sent")  # no Origin header -> not sent, but status saved
     dl = requests.get(f"{BASE_URL}/api/downloads/{d['session_id']}")
@@ -141,7 +145,15 @@ def test_free_checkout_calls_email_service(srv):
         es._assert_safe_email(subject, html); sent.append((to, subject, html)); return "id"
     server.send_email = fake_send
     body = server.CheckoutIn(product_id="free-planner", customer_email=EMAIL)
-    out = _run(server, lambda: server.checkout(body, FakeReq("https://shop.example.com")))
+    from fastapi import BackgroundTasks
+    bt = BackgroundTasks()
+
+    async def go():
+        o = await server.checkout(body, FakeReq("https://shop.example.com"), bt)
+        assert not sent, "email should be deferred to background task"
+        await bt()
+        return o
+    out = _run(server, go)
     CREATED_SESSIONS.append(out["session_id"])
     assert out["free"] is True
     assert sent and sent[0][0].lower() == EMAIL.lower()
@@ -160,7 +172,14 @@ def test_approve_calls_email_service(srv):
     CREATED_SESSIONS.append(sid)
     db.orders.insert_one({"id": oid, "session_id": sid, "product_id": "weekly-reset", "product_name": "The Weekly Reset",
                           "customer_email": EMAIL, "payment_status": "pending_review", "amount": 399, "discount_code": ""})
-    out = _run(server, lambda: server.review_order(oid, "approve", FakeReq("https://shop.example.com"), {}))
-    assert out["payment_status"] == "paid" and out["email_status"] == "sent"
+    from fastapi import BackgroundTasks
+    bt = BackgroundTasks()
+
+    async def go():
+        o = await server.review_order(oid, "approve", FakeReq("https://shop.example.com"), bt, {})
+        await bt()
+        return o
+    out = _run(server, go)
+    assert out["payment_status"] == "paid"
     assert f"https://shop.example.com/payment/success?session_id={sid}" in sent[0][1]
     assert db.orders.find_one({"id": oid})["email_status"] == "sent"

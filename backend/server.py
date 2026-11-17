@@ -7,7 +7,7 @@ from pymongo.errors import DuplicateKeyError
 from pydantic import BaseModel, Field, EmailStr
 from typing import List, Optional
 from pathlib import Path
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import os, uuid, logging
 
 ROOT_DIR = Path(__file__).parent
@@ -211,6 +211,10 @@ async def validate_discount(body: ValidateDiscountIn):
 async def checkout(body: CheckoutIn, request: Request, background_tasks: BackgroundTasks):
     item = await find_product(body.product_id)
     amount, code, percent = item["price"], "", 0
+    if item["price"] == 0:
+        since = (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat()
+        claims = await db.orders.count_documents({"customer_email": body.customer_email, "amount": 0, "created_at": {"$gte": since}})
+        if claims >= 3: raise HTTPException(429, "Please try again later for another free template")
     if body.discount_code.strip() and item["price"] > 0:
         d = await db.discounts.find_one_and_update(usable_filter(body.discount_code), {"$inc": {"uses": 1}})
         if not d: raise HTTPException(400, "This code isn't valid or has run out")

@@ -116,13 +116,16 @@ def approval_email(order: dict, status_url: str) -> tuple[str, str]:
     brand = escape(EMAIL_FROM_NAME)
     name = escape(order["product_name"])
     url = escape(status_url, quote=True)
-    subject = f"Your {EMAIL_FROM_NAME} download is ready: {order['product_name']}"
+    is_free = order.get("amount", 0) == 0
+    subject = f"Your free {EMAIL_FROM_NAME} template is ready: {order['product_name']}" if is_free else f"Your {EMAIL_FROM_NAME} download is ready: {order['product_name']}"
+    eyebrow = "FREE TEMPLATE READY" if is_free else "PAYMENT CONFIRMED"
+    headline = "Your free template is ready." if is_free else "Your download is ready."
+    message = "Thanks for choosing a free Morrow Market template. Your file is waiting for you." if is_free else f"Thank you for buying <strong style=\"color:#29352f\">{name}</strong>. We've confirmed your GPay payment, and your file is waiting for you."
     html = f"""<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f4ef;padding:32px 0">
-<tr><td align="center"><table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#ffffff;border:1px solid #d9dbd2">
 <tr><td style="background:#29352f;padding:22px 32px;font-family:Georgia,serif;color:#f5f4ef;font-size:18px">{brand}</td></tr>
-<tr><td style="padding:36px 32px 8px;font-family:Arial,sans-serif;font-size:11px;letter-spacing:2px;color:#b58e3d">PAYMENT CONFIRMED</td></tr>
-<tr><td style="padding:0 32px;font-family:Georgia,serif;font-size:30px;line-height:1.15;color:#29352f">Your download is ready.</td></tr>
-<tr><td style="padding:18px 32px 0;font-family:Arial,sans-serif;font-size:14px;line-height:1.7;color:#5f6b63">Thank you for buying <strong style="color:#29352f">{name}</strong>. We've confirmed your GPay payment, and your file is waiting for you.</td></tr>
+<tr><td style="padding:36px 32px 8px;font-family:Arial,sans-serif;font-size:11px;letter-spacing:2px;color:#b58e3d">{eyebrow}</td></tr>
+<tr><td style="padding:0 32px;font-family:Georgia,serif;font-size:30px;line-height:1.15;color:#29352f">{headline}</td></tr>
+<tr><td style="padding:18px 32px 0;font-family:Arial,sans-serif;font-size:14px;line-height:1.7;color:#5f6b63">{message}</td></tr>
 <tr><td style="padding:28px 32px"><a href="{url}" style="display:inline-block;background:#29352f;color:#f5f4ef;text-decoration:none;font-family:Arial,sans-serif;font-size:13px;font-weight:bold;padding:14px 22px">Open my download</a></td></tr>
 <tr><td style="padding:0 32px 30px;font-family:Arial,sans-serif;font-size:12px;line-height:1.6;color:#7a857d">Keep this email. The button always takes you back to your order page, where you can download again any time.</td></tr>
 <tr><td style="border-top:1px solid #d9dbd2;padding:18px 32px;font-family:Arial,sans-serif;font-size:11px;color:#9aa29b">Sent by {brand} because you bought from our store. We never ask for your password or card details by email.</td></tr>

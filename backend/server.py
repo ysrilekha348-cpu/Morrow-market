@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, Depends, HTTPException, UploadFile, File, Request
+from fastapi import FastAPI, APIRouter, Depends, HTTPException, UploadFile, File, Request, BackgroundTasks
 from fastapi.responses import Response
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -208,10 +208,10 @@ async def validate_discount(body: ValidateDiscountIn):
 
 
 @api_router.post("/payments/checkout")
-async def checkout(body: CheckoutIn, request: Request):
+async def checkout(body: CheckoutIn, request: Request, background_tasks: BackgroundTasks):
     item = await find_product(body.product_id)
     amount, code, percent = item["price"], "", 0
-    if body.discount_code.strip():
+    if body.discount_code.strip() and item["price"] > 0:
         d = await db.discounts.find_one_and_update(usable_filter(body.discount_code), {"$inc": {"uses": 1}})
         if not d: raise HTTPException(400, "This code isn't valid or has run out")
         code, percent, amount = d["code"], d["percent"], discounted(item["price"], d["percent"])
@@ -223,7 +223,7 @@ async def checkout(body: CheckoutIn, request: Request):
         "payment_status": "paid" if amount == 0 else "awaiting_payment", "transaction_id": "", "created_at": now()})
     order = await db.orders.find_one({"session_id": session_id}, {"_id": 0})
     if amount == 0:
-        await email_customer(order, request)
+        background_tasks.add_task(email_customer, order, request)
     return {"session_id": session_id, "free": amount == 0}
 
 
@@ -339,7 +339,7 @@ async def resend_email(order_id: str, request: Request, _: dict = Depends(admin_
 
 
 @api_router.post("/admin/orders/{order_id}/{action}")
-async def review_order(order_id: str, action: str, request: Request, _: dict = Depends(admin_user)):
+async def review_order(order_id: str, action: str, request: Request, background_tasks: BackgroundTasks, _: dict = Depends(admin_user)):
     if action not in ("approve", "reject"): raise HTTPException(404, "Unknown action")
     status = "paid" if action == "approve" else "rejected"
     res = await db.orders.update_one({"id": order_id, "payment_status": "pending_review"}, {"$set": {"payment_status": status, "reviewed_at": now()}})
@@ -348,7 +348,7 @@ async def review_order(order_id: str, action: str, request: Request, _: dict = D
     if status == "rejected" and order.get("discount_code"):
         await db.discounts.update_one({"code": order["discount_code"], "uses": {"$gt": 0}}, {"$inc": {"uses": -1}})
     if status == "paid":
-        order = await email_customer(order, request)
+        background_tasks.add_task(email_customer, order, request)
     return order
 
 

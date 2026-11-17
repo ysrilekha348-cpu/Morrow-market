@@ -1,0 +1,46 @@
+{
+  "summary": "Tested the free templates and the new interactive UI. Backend: 66 of 67 pytest pass when run serially (-n 0), including 14 new tests in test_free_templates.py. Both free products (price 0, category 'Free templates') have their PDFs in object storage. Free checkout is instant (free:true, status paid) and the download returns a real PDF (%PDF, application/pdf). The email helper is called on free checkout and on paid approval (send_email mocked in-process), the HTTPS status URL is in the email, and email_status is saved. Paid EARLY20 checkout gives 499 -> 399. Admin endpoints return 401. Frontend: storefront shows 5 cards; free cards show 'Free template' / 'Free' and the Free templates filter shows 2. Save toggles and persists after reload. Quick view opens, closes, and its CTA links to the product. The promo banner shows on home and product pages, copy puts EARLY20 on the clipboard, and dismiss persists across reloads in the session. 'See inside' preview goes 1/3 -> 2/3 -> 3/3 and back, buttons disable at the ends, and the CTA goes to checkout. Free checkout shows the progress bar, no discount field and no GPay; it lands on success with a working download, and a real email went to delivered@resend.dev (email_status=sent). Paid checkout auto-applies EARLY20, and the pay page and UTR submit lead to the pending page. Mobile (390px) has no horizontal overflow. No console errors. NOT tested in the UI: the owner dashboard (order filters, email chip, banner controls), because owner sign-in via Clerk is not possible here. Those parts were only code-reviewed.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/payments/checkout", "issue": "If a client sends discount_code=EARLY20 for a free product (price 0), a limited EARLY20 use is still consumed (uses 0 -> 1). The UI doesn't send it, but the public API burns uses. Fix: skip the discount lookup and increment when item['price'] == 0."},
+      {"endpoint": "approval_email (email_service.py)", "issue": "The free-template email says 'PAYMENT CONFIRMED' and 'We've confirmed your GPay payment', which is wrong for free orders. Use different copy when amount == 0."},
+      {"endpoint": "POST /api/payments/checkout (free)", "issue": "The email is sent inside the request (httpx timeout 30s), so free checkout can hang up to 30s if the email provider is slow. Consider a background task."},
+      {"endpoint": "tests (shared EARLY20 state)", "issue": "Under the default xdist parallel run, test_promo_email::test_validate_and_checkout_early20 flakes because other test files change EARLY20.uses at the same time. It passes when run serially. Mark these tests with xdist_group or run with -n 0."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Admin (owner dashboard)", "issue": "FIXED BY TESTER: `saving`/`setSaving` were used in Admin (Add product form) but never declared. Opening the Add product form or saving would throw a ReferenceError and crash the owner page. I added const [saving,setSaving]=useState(false).", "selector": "[data-testid=add-product-button]", "priority": "HIGH"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Workbook preview modal", "issues": ["The page counter '1 / 3' sits under the absolute-positioned close X button. On desktop they overlap; on mobile the counter wraps to '2 / 3' stacked vertically behind the X.", "The previous button uses an ArrowUpRight icon (shows as a diagonal arrow) and is styled filled/dark, while next uses ChevronRight outlined. Use ChevronLeft and the same style."]},
+      {"screen": "Storefront mobile (390px) cards", "issues": ["The 'Free template' tag is cut off ('Free templ') and covered by the always-visible heart/eye icons in the top-right of the card image."]},
+      {"screen": "Free checkout / success", "issues": ["The checkout summary price shows '₹0' instead of 'Free'.", "Success page label for a free order says 'PAYMENT CONFIRMED'.", "Progress step 02 'Free download' is never highlighted for free products (hasDiscount is always false)."]},
+      {"screen": "Paid checkout", "issues": ["The intro copy 'we'll send your template instantly' also shows for paid products, which have manual GPay approval."]},
+      {"screen": "Promo banner on free product page", "issues": ["The '20% off everything' banner shows on free product pages and free checkout context. This is a minor mismatch."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_free_templates.py", "/app/backend/tests/test_promo_email.py", "/app/backend/tests/test_discounts.py", "/app/backend/tests/test_gpay_flow.py", "/app/backend/tests/backend_test.py", "/app/test_reports/pytest/pytest_results.xml"],
+  "action_items": [
+    "Backend checkout: ignore or reject discount_code for price-0 products so EARLY20 uses aren't burned",
+    "Use free-specific email copy and success-page label for free orders (not 'GPay payment confirmed')",
+    "Fix preview modal counter overlapping the close button (desktop and mobile); use ChevronLeft for previous",
+    "Fix mobile card tag truncation and overlap with the heart/eye icons",
+    "Show 'Free' instead of ₹0 in the checkout summary",
+    "Owner dashboard (order filters, email chip, banner controls) needs a manual check by the signed-in owner"
+  ],
+  "critical_code_review_comments": [
+    "App.js is 37 extremely long single-line components, which is hard to maintain. Split into modules (PromoBanner, Checkout, Admin, etc.)",
+    "Admin missed the saving state declaration (fixed). ESLint no-undef didn't catch it, so check the lint config",
+    "Free checkout is a public endpoint that sends an email to any address with no rate limit, so it can be abused to spam. Consider rate limiting per IP/email",
+    "Existing tests clean up by regex prefix (^test_promo etc.), which goes against the isolation guidelines. Prefer deleting by created ids"
+  ],
+  "updated_files": ["/app/frontend/src/App.js (added saving state in Admin; added data-testid=preview-page-indicator)", "/app/backend/tests/test_free_templates.py (new)"],
+  "success_rate": {"backend": "98.5% (66/67 serial; 1 real minor bug)", "frontend": "100% of tested public flows; owner dashboard not UI-tested"},
+  "seed_data_creation": "None. Test orders were deleted by session_id, and EARLY20 was restored to uses:0, active:true, featured:true (/api/store/promo remaining=50). One real email went to delivered@resend.dev (Resend test sink).",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Run pytest with -n 0 because tests share EARLY20 state. Owner dashboard can't be UI-tested without the owner's Clerk login. Use data-testid=preview-page-indicator for the workbook preview counter (visual-edit wraps spans, so .preview-head span is ambiguous)."
+}

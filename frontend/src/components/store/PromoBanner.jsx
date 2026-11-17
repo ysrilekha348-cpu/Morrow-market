@@ -15,7 +15,11 @@ export function PromoBanner() {
       .catch(logWarn("Promo banner unavailable"));
   }, []);
   if (!promo || hidden) return null;
-  const copy = () => { navigator.clipboard?.writeText(promo.code); setCopied(true); setTimeout(() => setCopied(false), 1800); };
+  const copy = () => {
+    Promise.resolve(navigator.clipboard?.writeText(promo.code))
+      .then(() => { setCopied(true); setTimeout(() => setCopied(false), 1800); })
+      .catch(logWarn("Copy failed"));
+  };
   const close = () => { sessionStorage.setItem(hideKey(promo.code), "1"); setHidden(true); };
   return (
     <div className="promo-banner" data-testid="promo-banner">

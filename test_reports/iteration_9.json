@@ -1,0 +1,31 @@
+{
+  "summary": "Iteration 9: checked the refactor of the monolithic App.js into pages, components, hooks and lib, plus the backend refactors (storage._request, _assert_safe_email split into _check_* helpers, test_gpay_flow split). Code review: the set of data-testids is identical between the old App.js (commit 1eaf32c) and the new files (diffed automatically). The logic of Checkout, PayPage, Success, Admin, OrderRow and Discounts matches the old code; the only additions are console.warn on errors that used to be swallowed. Backend: full serial suite 159/159 passed, and the new test_iteration9_refactor.py passed 20/20 (validator rejects forms, textarea, http, relative src, shorteners, IP hosts, credential-bearing URLs, punycode, mismatched anchor text, and credential asks in subject or body; accepts mailto/tel/#, same-site anchors and approval_email output for free and paid orders; storage put/get roundtrip works and a missing key raises HTTPError; the paid money-map download is byte-identical to the stored object). Admin endpoints return 401 without a token. Frontend (all passing): 30 cards; promo banner copy and dismiss, staying dismissed after reload; category pills (Free templates = 2); search; like toggle persists in localStorage; quick view opens and closes via the button and the backdrop and links to the product; workbook preview pages 1-3 with correct prev/next disabled states and distinct money-map copy; not-found for an unknown product, checkout, pay and success session; auto-applied EARLY20 shows ₹299 struck through then ₹239; remove; invalid code error; manual code via Enter; checkout goes to /pay; pay page shows amount ₹239, the GPay number, the QR box and the struck-through summary; a short UTR is blocked by minLength; a valid UTR leads to the pending note; revisiting /pay redirects to success; paid state shows the download (zip, 200); rejected state shows the retry link, the rejected note on /pay, and resubmitting returns to pending; free template flow shows TEMPLATE READY and the PDF download returns 200; the admin wall's sign-in button redirects to Clerk /sign-in; mobile checkout at 390px has no overflow.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "PromoBanner copy()", "issue": "navigator.clipboard?.writeText() returns a promise that is never caught. When clipboard permission is denied (headless, or a non-secure iframe), this throws an unhandled rejection ('Write permission denied') and still shows the copied check. This was already in the old App.js, so the refactor did not cause it. Add .then(() => setCopied(true)).catch(logWarn('Copy failed')).", "selector": "[data-testid=promo-code-button]", "priority": "LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": ["/app/backend/tests/test_iteration9_refactor.py", "/app/test_reports/pytest/pytest_results_iter9.xml"],
+  "action_items": [
+    "Optional: add a .catch to the clipboard write in PromoBanner (LOW)",
+    "Optional: the s fixture in tests/test_gpay_flow.py tears down with delete_many on the regex ^test_gpay. That deletes by prefix rather than by created ids, so it can wipe orders from parallel runs. Track session_ids and delete by id instead."
+  ],
+  "critical_code_review_comments": [
+    "Refactor is faithful: identical testid set; same API calls, redirects, polling (15s), and the promo auto-apply and setDeal(null)-on-error behaviour.",
+    "storage._request: same semantics as before (one retry with force=True on 404, then raise_for_status). If a caller ever passes a file/stream as data=, the retry would send an exhausted stream. Callers pass bytes today, so this is fine.",
+    "CheckoutForm has no key={p.id}. Navigating straight from one /checkout/:id to another unmounts it via Loading anyway (useProduct resets product to null), so state does not leak."
+  ],
+  "updated_files": ["/app/backend/tests/test_iteration9_refactor.py (new)"],
+  "success_rate": {"backend": "100% (159/159 existing + 20/20 new)", "frontend": "100% of the requested flows"},
+  "test_credentials": "Admin is Clerk-based (Ysrilekha348@gmail.com), and no password is available, so the signed-in admin UI was not tested. Only the sign-in wall and the 401s on admin APIs were verified.",
+  "seed_data_creation": "None. Two UI orders (paid money-map 90520af4..., free free-moodboard a8b6f788...) were deleted by session_id, and the test_iteration9 order was deleted by id in the fixture. EARLY20 uses went up by 2 because I set rejected directly in Mongo (skipping the admin decrement) and then resubmitted, so I restored it to its pre-test value of 0; it is active and featured. The order count is back to its baseline of 6.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Run: export REACT_APP_BACKEND_URL=$(grep REACT_APP_BACKEND_URL /app/frontend/.env | cut -d= -f2); cd /app/backend; pytest tests/ -n 0 (179 tests). To test success-page states, set orders.payment_status via pymongo by session_id. Setting rejected directly does not decrement discount uses, so restore EARLY20.uses afterwards. Modal testids: quick-view-modal/close, workbook-preview-modal/close."
+}

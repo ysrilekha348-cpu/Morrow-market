@@ -10,17 +10,21 @@ _env = dotenv_values("/app/backend/.env")
 db = MongoClient(_env["MONGO_URL"])[_env["DB_NAME"]]
 
 
+_created = []
+
+
 @pytest.fixture(scope="module")
 def s():
     with requests.Session() as sess:
         yield sess
-    db.orders.delete_many({"customer_email": {"$regex": "^test_gpay", "$options": "i"}})
+    db.orders.delete_many({"session_id": {"$in": _created}})
 
 
 def new_order(s, pid="weekly-reset"):
     r = s.post(f"{BASE_URL}/api/payments/checkout", json={"product_id": pid, "customer_email": "TEST_gpay@example.com"})
     assert r.status_code == 200, r.text
-    return r.json()["session_id"]
+    _created.append(r.json()["session_id"])
+    return _created[-1]
 
 
 # Storefront products

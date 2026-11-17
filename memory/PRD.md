@@ -33,3 +33,8 @@
 - P1: Razorpay automatic payments (needs RAZORPAY_KEY_ID/SECRET), which removes the manual approval step
 - P1: Email the customer when the order is approved, with the download link
 - P2: Edit/unpublish products and upload cover images from the dashboard
+
+## 2026-06 — Code quality refactor (iteration 9, all tests passing)
+- Split the 37-line minified App.js into pages/ (Storefront, ProductPage, Checkout, PayPage, Success, Admin), components/store, components/admin, hooks/useProduct, lib/store + lib/previewText. Behavior and data-testids unchanged.
+- Fixed hook dependencies (removed module-constant deps), replaced silent catches with console.warn, made promo code copy handle clipboard errors.
+- storage._request: fixed headers being lost on retry; email_service._assert_safe_email split into _check_* helpers; test_gpay_flow split into focused tests that clean up by session id.

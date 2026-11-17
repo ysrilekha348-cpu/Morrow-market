@@ -39,3 +39,8 @@
 - Fixed hook dependencies (removed module-constant deps), replaced silent catches with console.warn, made promo code copy handle clipboard errors.
 - storage._request: fixed headers being lost on retry; email_service._assert_safe_email split into _check_* helpers; test_gpay_flow split into focused tests that clean up by session id.
 - 2026-06: Exported store data to /app/data_export/*.json (products 30, orders 6, discounts 1, settings 1); restore with `python scripts/import_data.py [folder]` (tested against a scratch DB).
+
+## 2026-06 — Reports & exports (iteration 10, all tests passing)
+- Owner space "Reports & exports": Orders spreadsheet (Excel, IST dates, totals row) via GET /api/admin/orders/spreadsheet; Export all data (zip: products/orders/discounts/settings JSON + orders.xlsx) via GET /api/admin/export.
+- Morning sales email to ADMIN_EMAIL: owner picks 7/8/9 AM IST or Off (default 8) via /api/admin/reports/settings; "Send me one now" via /api/admin/reports/send-summary. Sent daily even on quiet days.
+- 3 platform crons (.emergent/crons.yml, 7/8/9 IST) → POST /api/cron/daily-summary (bearer WEBHOOK_CRON_SECRET, idempotent via cron_runs.run_id); sends only at chosen hour, once per IST day (atomic claim on settings.summary_sent_on).

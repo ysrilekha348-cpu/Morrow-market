@@ -134,6 +134,7 @@ async def seed():
             await db.products.update_one({"id": i, "price": OLD_USD_PRICES[i]}, {"$set": {"price": float(p)}})
     await db.products.update_one({"id": "content-batch", "image_url": "https://images.unsplash.com/photo-1499750310107-5fef28a66643?auto=format&fit=crop&w=1000&q=85"}, {"$set": {"image_url": "https://images.unsplash.com/photo-1553877522-43269d4ea984?auto=format&fit=crop&w=1000&q=85"}})
     await db.settings.update_one({"id": "store"}, {"$setOnInsert": {"id": "store", "gpay_number": "9337939011", "qr_path": ""}}, upsert=True)
+    await db.settings.update_one({"id": "store", "summary_hour": {"$exists": False}}, {"$set": {"summary_hour": 8}})
     await db.discounts.create_index("code", unique=True)
     await db.cron_runs.create_index("run_id", unique=True)
     await db.discounts.update_one({"code": "EARLY20"}, {"$setOnInsert": {"id": str(uuid.uuid4()), "code": "EARLY20", "percent": 20, "max_uses": 50, "uses": 0, "active": True, "created_at": now()}}, upsert=True)
@@ -518,14 +519,17 @@ async def send_summary_now(_: dict = Depends(admin_user)):
 
 
 async def run_scheduled_summary():
-    s = await get_settings()
+    today = stamp()
     hour = datetime.now(IST).hour
-    if s.get("summary_hour", 8) != hour or s.get("summary_sent_on") == stamp():
+    claimed = await db.settings.find_one_and_update(
+        {"id": "store", "summary_hour": hour, "summary_sent_on": {"$ne": today}}, {"$set": {"summary_sent_on": today}})
+    if not claimed:
         return
     try:
         await send_summary()
         logger.info("Morning summary sent")
     except Exception as e:
+        await db.settings.update_one({"id": "store"}, {"$set": {"summary_sent_on": ""}})
         logger.error(f"Morning summary failed: {e}")
 
 
@@ -540,7 +544,9 @@ async def cron_daily_summary(request: Request, background_tasks: BackgroundTasks
         body = await request.json()
     except ValueError:
         raise HTTPException(400, "Invalid body")
-    run_id = request.headers.get("x-webhook-id") or (body or {}).get("run_id")
+    if not isinstance(body, dict):
+        body = {}
+    run_id = request.headers.get("x-webhook-id") or body.get("run_id")
     if not run_id:
         raise HTTPException(400, "Missing run id")
     try:

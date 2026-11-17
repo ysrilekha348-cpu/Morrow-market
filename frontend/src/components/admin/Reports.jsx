@@ -10,7 +10,7 @@ const saveBlob = (res, fallback) => {
   const url = URL.createObjectURL(res.data);
   const a = Object.assign(document.createElement("a"), { href: url, download: name });
   a.click();
-  URL.revokeObjectURL(url);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 };
 
 function DownloadButton({ auth, path, fallback, icon: Icon, label, testId, setMsg }) {
@@ -28,12 +28,15 @@ function DownloadButton({ auth, path, fallback, icon: Icon, label, testId, setMs
 function SummarySettings({ auth, setMsg }) {
   const [s, setS] = useState(null);
   const [sending, setSending] = useState(false);
+  const [saving, setSaving] = useState(false);
   const load = useCallback(async () => setS((await axios.get(`${API}/admin/reports/settings`, await auth())).data), [auth]);
   useEffect(() => { load().catch(logWarn("Summary settings failed to load")); }, [load]);
   if (!s) return null;
   const choose = async hour => {
+    setSaving(true);
     try { setS((await axios.put(`${API}/admin/reports/settings`, { summary_hour: hour }, await auth())).data); setMsg(hour ? `Morning summary set for ${hour} AM India time` : "Morning summary turned off"); }
     catch (err) { setMsg(errMsg(err)); }
+    setSaving(false);
   };
   const sendNow = async () => {
     setSending(true);
@@ -45,7 +48,7 @@ function SummarySettings({ auth, setMsg }) {
     <div className="summary-settings" data-testid="summary-settings">
       <div><b><Sunrise size={15} /> Morning sales email</b><span>Overnight sales, free downloads and payments waiting for you, sent to {s.recipient}{s.last_sent_on && ` · last sent ${s.last_sent_on}`}</span></div>
       <div className="order-filters" data-testid="summary-time-options">
-        {TIMES.map(([h, label]) => <button key={h} className={s.summary_hour === h ? "active" : ""} onClick={() => choose(h)} data-testid={`summary-time-${h || "off"}`}>{label}</button>)}
+        {TIMES.map(([h, label]) => <button key={h} disabled={saving} className={s.summary_hour === h ? "active" : ""} onClick={() => choose(h)} data-testid={`summary-time-${h || "off"}`}>{label}</button>)}
       </div>
       <button className="outline-button small" onClick={sendNow} disabled={sending} data-testid="send-summary-now"><Mail size={14} /> {sending ? "Sending…" : "Send me one now"}</button>
     </div>

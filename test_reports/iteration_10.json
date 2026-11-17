@@ -1,0 +1,35 @@
+{
+  "summary": "Tested Reports/Exports/Morning-summary feature. New suite tests/test_iteration10_reports.py (36 tests): 35 pass, 1 fails (cron endpoint returns 500 for a non-object JSON body). Admin endpoints were tested in-process with httpx ASGITransport and an admin_user dependency override, plus public-URL 401 checks. Results: export zip has the 5 expected files and no _id; the spreadsheet endpoint and the orders_xlsx builder work (header, one row per order, blank row, totals row counting only paid orders, IST dates such as 20:00 UTC -> 01:30 AM next day, Status labels); PUT settings accepts 0/7/8/9 and returns 422 for 6/10/12/-1/'8'/null; GET settings saves site_url from an https Origin; send-summary was mocked; run_scheduled_summary gating works (sends only at the chosen hour, never twice in one day, off when 0, sends again if last sent yesterday); summary_email passes _assert_safe_email for quiet and busy days, with and without a dashboard URL, and escapes HTML; daily_stats counts are correct; cron returns 401 for no or wrong bearer, 400 for invalid JSON or a missing run id, accepted then duplicate for a repeated id, and accepts run_id in the body; crons.yml meets the contract. Full regression: 213/215 in parallel. One failure is the new bug; the other is a flaky test_discounts order-count check caused by xdist parallelism (16/16 pass serially). Frontend: compiles, storefront shows 30 product cards, /admin shows the signed-out Sign in wall, Reports section is not shown, no page errors. The signed-in Reports UI was code-reviewed only, because Clerk owner login is not available.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/cron/daily-summary", "issue": "Valid bearer with a JSON body that is not an object (e.g. [1,2] or \"str\") gives 500 AttributeError: 'list' object has no attribute 'get' at server.py:543 `(body or {}).get(...)`. Fix: `if not isinstance(body, dict): body = {}`, or return 400."},
+      {"endpoint": "run_scheduled_summary", "issue": "summary_sent_on is only set after send_email succeeds, and the check and the set are not atomic. Low risk with one cron per hour, but an atomic find_one_and_update claim on summary_sent_on would make it airtight. A failed send is not retried that hour (logged only)."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Admin Reports (code review)", "issues": ["saveBlob calls URL.revokeObjectURL right after a.click(). This can cancel the download in Safari/Firefox; defer it with setTimeout.", "Time-option buttons are not disabled while a PUT is in flight (minor)."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_iteration10_reports.py", "/app/test_reports/pytest/pytest_results_iter10.xml"],
+  "action_items": [
+    "Guard against non-dict JSON body in /api/cron/daily-summary (currently 500)",
+    "Optional: defer URL.revokeObjectURL in Reports.jsx saveBlob",
+    "Optional: make test_discounts.py order-count assertions robust to parallel xdist workers (filter by test email instead of global count)"
+  ],
+  "critical_code_review_comments": [
+    "server.py:543 non-dict body -> 500",
+    "Export zip includes settings (gpay_number, qr_path, site_url). Fine for owner-only, but be aware it is in the download",
+    "GET /admin/reports/settings overwrites site_url from any https Origin header sent by an admin. Acceptable, since admin is trusted"
+  ],
+  "updated_files": ["/app/backend/tests/test_iteration10_reports.py"],
+  "success_rate": {"backend": "97% (35/36 new; 213/215 full suite incl. 1 flaky)", "frontend": "100% of testable (signed-out wall + storefront)"},
+  "seed_data_creation": "None persisted. Settings captured and restored to original (summary_hour=8, summary_sent_on='', site_url unset). TEST_ cron_runs deleted (cron_runs count 0). Orders count unchanged (6). No real emails sent (server.send_email monkeypatched; public cron tests set summary_sent_on=today as guard, and IST hour was 11).",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Run test_iteration10_reports.py with `-n 0` (it mutates shared settings doc). It loads REACT_APP_BACKEND_URL from /app/frontend/.env. Admin endpoints are tested in-process via httpx.ASGITransport with server.app.dependency_overrides[server.admin_user]; a single module-level event loop is used for motor.",
+  "test_credentials": "Clerk owner Ysrilekha348@gmail.com (no password) - not used for UI login"
+}

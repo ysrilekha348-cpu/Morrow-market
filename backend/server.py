@@ -96,7 +96,7 @@ SEED = [
     ("subscription-audit", "Subscription Audit", "Find the quiet leaks in your monthly spending and make room for what you actually use.", 99, "Finance", "Quick win", "photo-1556742049-0cfed4f6a45d", "subscription-audit.pdf"),
     ("income-invoice", "Income & Invoice Tracker", "A simple system for tracking paid work, open invoices, follow-ups and income by month.", 199, "Business", "New", "photo-1554224155-8d04cb21cd6c", "income-invoice-bundle.zip"),
     ("freelancer-finance", "Freelancer Finance Dashboard", "A practical money dashboard for irregular income, taxes, expenses and a steadier business.", 499, "Business", "Premium", "photo-1556761175-b413da4baf72", "freelancer-finance-bundle.zip"),
-    ("content-batch", "Content Batch Planner", "Plan a full month of thoughtful content in a few focused sessions without becoming a content machine.", 199, "Planning", "Popular", "photo-1499750310107-5fef28a66643", "content-batch-bundle.zip"),
+    ("content-batch", "Content Batch Planner", "Plan a full month of thoughtful content in a few focused sessions without becoming a content machine.", 199, "Planning", "Popular", "photo-1553877522-43269d4ea984", "content-batch-bundle.zip"),
     ("client-onboarding", "Client Onboarding Kit", "A warm, clear client journey with welcome notes, information gathering and next steps.", 299, "Business", "Premium", "photo-1552664730-d307ca884978", "client-onboarding.pdf"),
     ("project-scope", "Project Scope Planner", "Set kind boundaries, define deliverables and make the work easier to agree on before it begins.", 249, "Business", "Useful", "photo-1454165804606-c3d57bc86b40", "project-scope.pdf"),
     ("meeting-notes", "Meeting Notes System", "A focused meeting page that turns conversation into decisions, owners and next actions.", 129, "Planning", "Quick win", "photo-1517245386807-bb43f82c33c4", "meeting-notes.pdf"),
@@ -104,6 +104,16 @@ SEED = [
     ("meal-grocery", "Meal & Grocery Planner", "Plan flexible meals, use what you have and make the weekly shop feel lighter.", 149, "Home", "Popular", "photo-1498837167922-ddd27525d352", "meal-grocery.pdf"),
     ("home-reset", "Home Reset Planner", "A gentle room-by-room reset for creating a home that supports the way you actually live.", 99, "Home", "Quick win", "photo-1484101403633-562f891dc89a", "home-reset.pdf"),
     ("self-care", "Self-Care Habit Tracker", "A soft, no-pressure tracker for small rituals that help you feel more like yourself.", 129, "Wellbeing", "New", "photo-1515377905703-c4788e51af15", "self-care.pdf"),
+    ("study-planner", "Study Sprint Planner", "A focused study system for turning a big syllabus into calm, trackable sessions.", 149, "Education", "New", "photo-1434030216411-0b793f4b4173", "study-planner.pdf"),
+    ("reading-journal", "Reading Journal", "A beautiful place to collect ideas, favourite lines and the books that stay with you.", 99, "Lifestyle", "New", "photo-1512820790803-83ca734da794", "reading-journal.pdf"),
+    ("wedding-planner", "Wedding Planning Budget", "Keep the joy in the planning with a practical budget, vendor list and payment calendar.", 299, "Finance", "New", "photo-1519741497674-611481863552", "wedding-planner-bundle.zip"),
+    ("travel-planner", "Travel Itinerary Planner", "Map the details without overplanning the magic: stays, routes, reservations and room to wander.", 199, "Travel", "New", "photo-1488646953014-85cb44e25828", "travel-planner.pdf"),
+    ("moving-home", "Moving Home Checklist", "A room-by-room move plan for packing, changing addresses and settling in without the scramble.", 149, "Home", "New", "photo-1600585154340-be6161a56a0c", "moving-home.pdf"),
+    ("pet-care", "Pet Care Tracker", "Keep routines, appointments, medications and the little details of caring for your companion together.", 129, "Home", "New", "photo-1450778869180-41d0601e046e", "pet-care.pdf"),
+    ("fitness-log", "Gentle Fitness Log", "Track movement, energy and recovery without turning your body into a performance report.", 149, "Wellbeing", "New", "photo-1534438327276-14e5300c3a48", "fitness-log.pdf"),
+    ("digital-detox", "Digital Detox Planner", "A thoughtful reset for your attention, notifications and the parts of your day you want back.", 99, "Wellbeing", "New", "photo-1516321318423-f06f85e504b3", "digital-detox.pdf"),
+    ("gift-planner", "Gift Planning List", "Remember birthdays, ideas, budgets and the thoughtful details that make gifts feel personal.", 99, "Lifestyle", "New", "photo-1513885535751-8b9238bd345a", "gift-planner.pdf"),
+    ("course-launch", "Course Launch Planner", "Turn your knowledge into a clear launch plan with lessons, emails, content and a kinder timeline.", 299, "Business", "New", "photo-1523240795612-9a054b0db644", "course-launch-bundle.zip"),
 ]
 OLD_USD_PRICES = {"weekly-reset": 18.0, "quiet-brand": 32.0, "slow-content": 12.0}
 
@@ -131,7 +141,8 @@ async def seed():
 async def upload_seed_files():
     for pid, *_, fname in SEED:
         local = SEED_DIR / fname
-        if not local.exists() or await db.products.find_one({"id": pid, "storage_path": {"$exists": True}}):
+        existing = await db.products.find_one({"id": pid}, {"_id": 0, "storage_path": 1, "file_size": 1})
+        if not local.exists() or existing and existing.get("storage_path") and existing.get("file_size") == local.stat().st_size:
             continue
         ext = local.suffix or ".bin"
         ctype = mimetypes.guess_type(local.name)[0] or "application/octet-stream"

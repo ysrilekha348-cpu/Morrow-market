@@ -26,7 +26,7 @@ def cleanup():
 
 
 def checkout(pid, code="", headers=None):
-    r = requests.post(f"{BASE_URL}/api/payments/checkout", json={"product_id": pid, "customer_email": EMAIL, "discount_code": code}, headers=headers or {})
+    r = requests.post(f"{BASE_URL}/api/payments/checkout", json={"product_id": pid, "customer_email": f"delivered+{uuid.uuid4().hex[:8]}@resend.dev", "discount_code": code}, headers=headers or {})
     if r.status_code == 200:
         SESSIONS.append(r.json()["session_id"])
     return r

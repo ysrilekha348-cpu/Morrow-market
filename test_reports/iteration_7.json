@@ -1,0 +1,49 @@
+{
+  "summary": "Iteration 7 tested the 15 new paid templates. Backend: the new test_iteration7_paid_templates.py passes 43/43, and the full regression suite passes 123/123 when run serially (-n 0). Verified: GET /api/products returns 20 products; all 15 new products have the correct INR price (none at 0), category and file_name; all 15 detail endpoints work; each new product has a storage_path in Mongo. For each of the 15 I created a checkout, set the order to paid in Mongo, and downloaded the file: PDFs come back as application/pdf starting with %PDF, and the 7 bundles come back as application/zip containing a valid .pdf and a valid .xlsx. Unpaid and pending_review orders still get 404 on download. EARLY20 on freelancer-finance gives 399, GPay submit goes to pending_review, free checkout still works, and all admin endpoints return 401/403 without auth. Frontend (1920 and 390): 20 cards, prices shown in ₹, every category filter shows the expected count (Finance 3, Business 4, Home 2, Career 1, Wellbeing 1, Financial tracker 1, Budgeting 1, Planning 3), searching 'tracker' returns 5 products, no broken images, no horizontal overflow, no console errors. The 7 requested products show the correct price in quick view and on the product page, the workbook preview opens, and checkout auto-applies EARLY20 with the struck-through price and a 'Continue to GPay' button. One job-search checkout went through to the /pay page (₹159, GPay number shown); no payment was submitted. Main finding: the downloadable files are mostly generic and identical across products (details below).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/payments/checkout (free)", "issue": "The new limit of 3 free claims per email per hour is easy to get around by changing the email address, and it is not limited by IP. It also broke 3 earlier regression tests that reused one fixed email; I fixed the tests."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Category pills", "issue": "The data-testid is built from the raw category name, so it can contain spaces ('category-financial tracker', 'category-free templates'). Use a slug instead (replace spaces with '-').", "selector": ".pills button", "priority": "LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Storefront filter row (desktop 1920)", "issues": ["There are now 12 pills plus the search box in one row. 'Financial tracker' and 'Free templates' wrap onto two lines, and the row looks cramped. Consider white-space:nowrap with horizontal scroll, or merging categories (Finance, Financial tracker and Budgeting overlap heavily)."]},
+      {"screen": "Storefront filter row (mobile 390)", "issues": ["The pills scroll horizontally and 'Planning' is cut off with no scroll hint, so 8 of the 12 categories are hidden off screen."]},
+      {"screen": "Storefront grid order", "issues": ["Products are sorted by created_at descending, so the original bestsellers (Weekly Reset, Quiet Brand Kit) and the free templates are now at the very bottom, below 15 new items. Consider a curated order or sort field."]},
+      {"screen": "Workbook preview modal", "issues": ["The preview is the same generic placeholder for every product ('A gentler way to plan' / 'A prompt to begin'). It does not show the real pages of, for example, the Money Map or Freelancer Finance product."]},
+      {"screen": "Product images", "issues": ["Content Batch Planner uses the same Unsplash photo as Slow Content Calendar (photo-1499750310107)."]}
+    ]
+  },
+  "product_content_issues": [
+    "HIGH (customer trust): the paid deliverables are templated and almost identical. All 7 finance PDFs (Money Map, Monthly Budget, Debt Payoff, Savings Goals, Subscription Audit, Income & Invoice, Freelancer Finance) have the same 3 inner pages: a Date/Description/Category/In/Out/Balance table, a 'Money with intention' prompt page and a weekly check-in. Debt Payoff has no debt list or snowball/avalanche page, Savings Goals has no goal milestones, and Subscription Audit has no subscription list.",
+    "HIGH: Client Onboarding, Project Scope, Meeting Notes, Meal & Grocery, Home Reset and Self-Care all have the same 2 generic prompt pages ('What is true right now', 'The kind boundary', 'Today/This week/Later'). Only the description line differs. The Meal & Grocery Planner has no meal grid or grocery list, and the Self-Care Habit Tracker has no habit grid. Confirmed by rendering the pages.",
+    "HIGH: all 7 XLSX files are the same sheet (Date/Description/Category/Planned/Actual/Notes, 20 rows, 2 SUM formulas). Job Search Tracker and Content Batch Planner get ₹ Planned/Actual columns, which do not fit those products. The Income & Invoice tracker has no invoice number, due date or status. Freelancer Finance (₹499, Premium) has no tax or irregular-income logic.",
+    "The descriptions promise specific features (sinking funds, payoff strategy, taxes, interview notes) that the files do not contain. make_paid_templates.py needs per-product page and sheet definitions."
+  ],
+  "test_report_links": ["/app/backend/tests/test_iteration7_paid_templates.py", "/app/backend/tests/test_free_templates.py", "/app/backend/tests/test_iteration6_free_fixes.py", "/app/test_reports/pytest/pytest_results.xml", "/app/test_reports/pytest/pytest_results_iter7.xml"],
+  "action_items": [
+    "Rewrite make_paid_templates.py so each product gets content that matches its description: debt list and payoff strategy, savings milestones, subscription audit table, invoice log with number/due date/status, freelancer tax set-aside, meal grid plus grocery list, habit grid, job application pipeline, content batch calendar, meeting decisions/owners, project scope deliverables. Give the XLSX product-specific columns. Then regenerate the files and re-upload them. upload_seed_files skips products that already have a storage_path, so clear the storage_path first or add a version check.",
+    "Make the workbook preview product-specific, or at least use each product's real page titles",
+    "Improve the filter row: nowrap pills, fewer or merged categories, a scroll hint on mobile",
+    "Consider a curated product sort so the bestsellers and free items are not buried",
+    "Use slugs for the category-pill data-testid",
+    "Give Content Batch Planner its own image"
+  ],
+  "critical_code_review_comments": [
+    "upload_seed_files() never re-uploads a file once storage_path exists, so regenerated seed assets will not reach storage on deploy. Add a file hash or version to the product doc.",
+    "seed() uses $setOnInsert, so later changes to SEED names, prices or descriptions are never applied to existing DB rows. That is fine for owner edits, but there is no migration path.",
+    "Carried over: is_admin() fails open when CLERK_SECRET_KEY == ''.",
+    "App.js is a 34KB minified-style single file with 37 very long lines, which is hard to maintain or review. Split it into components."
+  ],
+  "updated_files": ["/app/backend/tests/test_iteration7_paid_templates.py (new)", "/app/backend/tests/test_free_templates.py (checkout helper uses unique email per call for the new 3/hour free limit)", "/app/backend/tests/test_iteration6_free_fixes.py (checkout helper uses delivered+<uuid>@resend.dev)"],
+  "success_rate": {"backend": "100% (123/123)", "frontend": "100% functional; design and content-quality issues noted"},
+  "seed_data_creation": "None kept. All test orders were deleted by session id (pytest fixture, plus one UI order 1f1eee035f1541baa49ce64585755a06). EARLY20 uses reset to 0 (verified). Orders collection has 6 docs; the iteration_6 report said 8 pre-existing orders. I deleted only my own session ids, so the 2 missing orders were removed before this run.",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Run the full suite with: export REACT_APP_BACKEND_URL=$(grep REACT_APP_BACKEND_URL /app/frontend/.env | cut -d= -f2); pytest tests/ -n 0. Earlier test files read the env var at import time. test_iteration7 marks orders paid directly via pymongo (loads backend/.env through dotenv without printing it). Quick-view button testid is quick-view-{id}; the modal is quick-view-modal with a quick-view-close button. Free checkout is limited to 3 per email per hour, so use unique emails. Retest the regenerated template contents once main agent rewrites make_paid_templates.py."
+}

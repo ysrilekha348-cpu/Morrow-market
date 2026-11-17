@@ -24,7 +24,7 @@ jobs:
       - name: Build frontend
         working-directory: frontend
         env:
-          CI: false
+          CI: "false"
         run: yarn build
 
   backend-syntax:

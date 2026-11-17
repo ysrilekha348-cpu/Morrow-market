@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { ArrowUpRight, Search } from "lucide-react";
-import { API, imgFallback, logWarn } from "@/lib/store";
+import { API, imgFallback } from "@/lib/store";
 import { Header } from "@/components/store/Header";
 import { PromoBanner } from "@/components/store/PromoBanner";
 import { ProductCard } from "@/components/store/ProductCard";
@@ -23,7 +23,7 @@ function Hero() {
   );
 }
 
-function Filters({ cats, category, setCategory, query, setQuery }) {
+function Filters({ cats, category, setCategory, query, setQuery, sort, setSort }) {
   return (
     <div className="filter-row">
       <div className="pills">
@@ -31,7 +31,13 @@ function Filters({ cats, category, setCategory, query, setQuery }) {
           <button key={c} className={category === c ? "pill active" : "pill"} onClick={() => setCategory(c)} data-testid={`category-${c.toLowerCase().replace(/\s+/g, "-")}`}>{c}</button>
         ))}
       </div>
-      <label className="search"><Search size={16} /><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search the collection" data-testid="product-search-input" /></label>
+      <label className="search"><Search size={16} /><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search name, category or details" aria-label="Search products" data-testid="product-search-input" /></label>
+      <label className="sort-control"><span>Sort</span><select value={sort} onChange={e => setSort(e.target.value)} aria-label="Sort products" data-testid="product-sort">
+        <option value="featured">Featured</option>
+        <option value="price-asc">Price: low to high</option>
+        <option value="price-desc">Price: high to low</option>
+        <option value="name">Name: A to Z</option>
+      </select></label>
     </div>
   );
 }
@@ -40,16 +46,52 @@ function Shop() {
   const [products, setProducts] = useState([]);
   const [category, setCategory] = useState("All");
   const [query, setQuery] = useState("");
-  useEffect(() => { axios.get(`${API}/products`).then(r => setProducts(r.data)).catch(logWarn("Products failed to load")); }, []);
-  const cats = ["All", ...new Set(products.map(p => p.category))];
-  const shown = products.filter(p => (category === "All" || p.category === category) && p.name.toLowerCase().includes(query.toLowerCase()));
+  const [sort, setSort] = useState("featured");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    axios.get(`${API}/products`)
+      .then(r => { if (active) setProducts(Array.isArray(r.data) ? r.data : []); })
+      .catch(() => { if (active) setError("We couldn't load the collection. Please try again."); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, []);
+
+  const cats = ["All", ...new Set(products.map(p => p.category).filter(Boolean))];
+  const shown = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    const filtered = products.filter(p => {
+      const matchesCategory = category === "All" || p.category === category;
+      const searchable = [p.name, p.category, p.description, p.tag].filter(Boolean).join(" ").toLowerCase();
+      return matchesCategory && (!needle || searchable.includes(needle));
+    });
+    if (sort === "price-asc") filtered.sort((a, b) => Number(a.price) - Number(b.price));
+    if (sort === "price-desc") filtered.sort((a, b) => Number(b.price) - Number(a.price));
+    if (sort === "name") filtered.sort((a, b) => a.name.localeCompare(b.name));
+    return filtered;
+  }, [products, category, query, sort]);
+
+  const reset = () => { setCategory("All"); setQuery(""); setSort("featured"); };
+
   return (
     <section id="shop" className="shop-section">
       <div className="section-head">
         <div><p className="eyebrow">THE COLLECTION</p><h2>Digital goods<br /><i>with intention.</i></h2></div>
         <p className="section-blurb">Small tools can make a surprisingly big difference. Start with the thing that meets you where you are.</p>
       </div>
-      <Filters cats={cats} category={category} setCategory={setCategory} query={query} setQuery={setQuery} />
+      <Filters cats={cats} category={category} setCategory={setCategory} query={query} setQuery={setQuery} sort={sort} setSort={setSort} />
+      {loading && <p className="collection-message" role="status" data-testid="products-loading">Loading the collection…</p>}
+      {error && <div className="collection-message collection-error" role="alert" data-testid="products-error">{error} <button onClick={() => window.location.reload()}>Reload page</button></div>}
+      {!loading && !error && shown.length > 0 && <p className="results-count" aria-live="polite">{shown.length} {shown.length === 1 ? "product" : "products"}</p>}
+      {!loading && !error && shown.length === 0 && (
+        <div className="collection-message" data-testid="products-empty">
+          <h3>No products found</h3>
+          <p>Try another search or clear your filters to see the full collection.</p>
+          <button className="outline-button" onClick={reset} data-testid="clear-product-filters">Clear filters</button>
+        </div>
+      )}
       <div className="product-grid">{shown.map((p, i) => <ProductCard key={p.id} product={p} index={i} />)}</div>
     </section>
   );

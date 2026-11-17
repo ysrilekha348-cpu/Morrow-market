@@ -115,6 +115,33 @@ def test_rejected_can_resubmit(s):
     assert r.status_code == 200 and r.json()["payment_status"] == "pending_review"
 
 
+def test_duplicate_utr_rejected_across_orders(s):
+    first = new_order(s, "quiet-brand")
+    second = new_order(s, "quiet-brand")
+    assert submit(s, first, "DUPLICATEUTR123").status_code == 200
+    duplicate = submit(s, second, "duplicateutr123")
+    assert duplicate.status_code == 409
+    assert "already been submitted" in duplicate.json()["detail"]
+
+
+def test_checkout_requires_uploaded_product_file(s):
+    pid = "TEST_missing_file_product"
+    db.products.insert_one({
+        "id": pid, "name": "Test product without file", "description": "Test only",
+        "price": 99.0, "category": "Tests", "tag": "Test", "image_url": "",
+        "published": True, "file_name": "", "created_at": "2026-01-01T00:00:00+00:00"
+    })
+    try:
+        response = s.post(
+            f"{BASE_URL}/api/payments/checkout",
+            json={"product_id": pid, "customer_email": "TEST_gpay@example.com"}
+        )
+        assert response.status_code == 409
+        assert "not available for download" in response.json()["detail"]
+    finally:
+        db.products.delete_one({"id": pid})
+
+
 def test_status_unknown(s):
     assert s.get(f"{BASE_URL}/api/payments/status/nope").status_code == 404
     assert s.post(f"{BASE_URL}/api/payments/nope/submit", json={"transaction_id": "123456"}).status_code == 400

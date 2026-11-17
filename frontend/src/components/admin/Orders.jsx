@@ -1,6 +1,6 @@
 import { useState } from "react";
 import axios from "axios";
-import { Check, Mail, ShoppingBag, Tag, X } from "lucide-react";
+import { Check, Mail, Search, ShoppingBag, Tag, X } from "lucide-react";
 import { API, STATUS_LABEL, errMsg, inr } from "@/lib/store";
 
 const FILTERS = [["all", "All orders"], ["pending_review", "Needs review"], ["paid", "Confirmed"], ["rejected", "Rejected"]];
@@ -75,15 +75,22 @@ function OrderRow({ o, auth, onDone }) {
 
 export function OrdersSection({ orders, auth, onDone }) {
   const [filter, setFilter] = useState("all");
-  const visible = filter === "all" ? orders : orders.filter(o => o.payment_status === filter);
+  const [query, setQuery] = useState("");
+  const needle = query.trim().toLowerCase();
+  const visible = orders.filter(o => {
+    const matchesStatus = filter === "all" || o.payment_status === filter;
+    const searchable = [o.id, o.product_name, o.customer_email, o.transaction_id, o.discount_code].filter(Boolean).join(" ").toLowerCase();
+    return matchesStatus && (!needle || searchable.includes(needle));
+  });
   return (
     <section className="admin-section">
       <div className="section-label"><ShoppingBag size={18} /><h2>Orders</h2></div>
       <OrderFilters value={filter} onChange={setFilter} />
+      <label className="order-search"><Search size={16} /><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search product, customer, order ID or UTR" aria-label="Search orders" data-testid="order-search-input" /></label>
       <div className="admin-list">
         {visible.length
           ? visible.map(o => <OrderRow key={o.id} o={o} auth={auth} onDone={onDone} />)
-          : <p className="empty">{filter === "all" ? "Orders will appear here after your first sale." : "No orders in this view."}</p>}
+          : <p className="empty" data-testid="orders-empty">{needle ? "No orders match your search." : filter === "all" ? "Orders will appear here after your first sale." : "No orders in this view."}</p>}
       </div>
     </section>
   );

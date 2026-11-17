@@ -18,8 +18,14 @@ function DetailCopy({ p }) {
         <strong data-testid="product-detail-price">{priceText(p)}</strong>
         <span>{free ? "Instant download · No payment needed" : "Digital download · Pay with GPay / UPI"}</span>
       </div>
-      <Link to={`/checkout/${p.id}`} className="dark-button full" data-testid="buy-product-button">{free ? "Get the free template" : "Get the download"} <ArrowUpRight size={16} /></Link>
-      <div className="secure-note"><Lock size={16} /> {free ? "Delivered to your email instantly" : "Private delivery once payment is confirmed"}</div>
+      {p.file_uploaded ? (
+        <>
+          <Link to={`/checkout/${p.id}`} className="dark-button full" data-testid="buy-product-button">{free ? "Get the free template" : "Get the download"} <ArrowUpRight size={16} /></Link>
+          <div className="secure-note"><Lock size={16} /> {free ? "Delivered to your email instantly" : "Private delivery once payment is confirmed"}</div>
+        </>
+      ) : (
+        <p className="form-error" data-testid="product-file-unavailable">This download is being prepared. Please check back soon.</p>
+      )}
     </div>
   );
 }

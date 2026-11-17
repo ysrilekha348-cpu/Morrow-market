@@ -16,7 +16,7 @@ export function ProductCard({ product, index }) {
         <div className="product-image">
           <Link to={`/product/${product.id}`} data-testid={`product-link-${product.id}`}>
             <img src={product.image_url || imgFallback} alt={product.name} />
-            <span className="tag">{product.price === 0 ? "Free template" : product.tag}</span>
+            <span className="tag">{!product.file_uploaded ? "Coming soon" : product.price === 0 ? "Free template" : product.tag}</span>
           </Link>
           <div className="card-actions">
             <button className={`card-icon ${liked ? "liked" : ""}`} onClick={toggleLike} aria-label="Save product" data-testid={`save-product-${product.id}`}><Heart size={16} fill={liked ? "currentColor" : "none"} /></button>

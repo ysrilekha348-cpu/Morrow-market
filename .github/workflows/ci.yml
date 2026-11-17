@@ -1,0 +1,39 @@
+name: Morrow Market CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - improvements/**
+
+jobs:
+  frontend-build:
+    name: Frontend production build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Enable Yarn
+        run: corepack enable
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: yarn install --non-interactive
+      - name: Build frontend
+        working-directory: frontend
+        env:
+          CI: "false"
+        run: yarn build
+
+  backend-syntax:
+    name: Backend Python syntax
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Compile backend modules
+        run: python -m compileall -q backend

@@ -31,7 +31,8 @@ try:
     from clerk_auth import clerk_router, require_user
 except Exception:
     clerk_router = None
-    def require_user(): return {"user_id": "preview-owner"}
+    def require_user():
+        raise HTTPException(503, "Authentication is unavailable; owner actions are disabled")
 
 
 def now(): return datetime.now(timezone.utc).isoformat()
@@ -51,6 +52,7 @@ class Product(ProductIn):
     id: str
     created_at: str
     file_name: str = ""
+    file_uploaded: bool = False
 
 
 class CheckoutIn(BaseModel):
@@ -187,14 +189,16 @@ async def root(): return {"message": "Morrow Market API"}
 
 
 @api_router.get("/products", response_model=List[Product])
-async def products(): return await db.products.find({"published": True}, {"_id": 0}).sort("created_at", -1).to_list(100)
+async def products():
+    items = await db.products.find({"published": True}, {"_id": 0}).sort("created_at", -1).to_list(100)
+    return [{**item, "file_uploaded": bool(item.get("storage_path"))} for item in items]
 
 
 @api_router.get("/products/{product_id}", response_model=Product)
 async def product(product_id: str):
     item = await db.products.find_one({"id": product_id, "published": True}, {"_id": 0})
     if not item: raise HTTPException(404, "Product not found")
-    return item
+    return {**item, "file_uploaded": bool(item.get("storage_path"))}
 
 
 @api_router.get("/store/payment-info")
@@ -248,13 +252,17 @@ async def validate_discount(body: ValidateDiscountIn):
 @api_router.post("/payments/checkout")
 async def checkout(body: CheckoutIn, request: Request, background_tasks: BackgroundTasks):
     item = await find_product(body.product_id)
+    # Never accept an order for a placeholder/sample download.
+    if not item.get("storage_path"):
+        raise HTTPException(409, "This product is not available for download yet")
     amount, code, percent = item["price"], "", 0
     if item["price"] == 0:
         since = (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat()
         claims = await db.orders.count_documents({"customer_email": body.customer_email, "amount": 0, "created_at": {"$gte": since}})
         if claims >= 3: raise HTTPException(429, "Please try again later for another free template")
     if body.discount_code.strip() and item["price"] > 0:
-        d = await db.discounts.find_one_and_update(usable_filter(body.discount_code), {"$inc": {"uses": 1}})
+        # Validate at checkout, but count a use only after the customer submits a UTR.
+        d = await db.discounts.find_one(usable_filter(body.discount_code), {"_id": 0})
         if not d: raise HTTPException(400, "This code isn't valid or has run out")
         code, percent, amount = d["code"], d["percent"], discounted(item["price"], d["percent"])
     session_id = uuid.uuid4().hex
@@ -283,13 +291,27 @@ async def payment_status(session_id: str):
 async def submit_payment(session_id: str, body: SubmitPaymentIn):
     order = await db.orders.find_one({"session_id": session_id, "payment_status": {"$in": ["awaiting_payment", "rejected"]}}, {"_id": 0})
     if not order: raise HTTPException(400, "This order can't accept a payment reference")
-    if order.get("payment_status") == "rejected" and order.get("discount_code"):
-        d = await db.discounts.find_one_and_update(usable_filter(order["discount_code"]), {"$inc": {"uses": 1}})
-        if not d: raise HTTPException(400, "This discount code has run out")
+    transaction_id = body.transaction_id.strip().upper()
+    duplicate = await db.orders.find_one(
+        {"transaction_id": transaction_id, "session_id": {"$ne": session_id}},
+        {"_id": 0, "id": 1})
+    if duplicate:
+        raise HTTPException(409, "This transaction ID has already been submitted")
+    previous_status = order["payment_status"]
+    # Claim the order first so two simultaneous submissions cannot consume a coupon twice.
     res = await db.orders.update_one(
         {"session_id": session_id, "payment_status": {"$in": ["awaiting_payment", "rejected"]}},
-        {"$set": {"transaction_id": body.transaction_id.strip(), "payment_status": "pending_review", "submitted_at": now()}})
-    if not res.matched_count: raise HTTPException(400, "This order can't accept a payment reference")
+        {"$set": {"transaction_id": transaction_id, "payment_status": "pending_review", "submitted_at": now()}})
+    if not res.matched_count:
+        raise HTTPException(400, "This order can't accept a payment reference")
+    if order.get("discount_code") and previous_status == "awaiting_payment":
+        discount = await db.discounts.find_one_and_update(
+            usable_filter(order["discount_code"]), {"$inc": {"uses": 1}})
+        if not discount:
+            await db.orders.update_one(
+                {"session_id": session_id, "payment_status": "pending_review", "transaction_id": transaction_id},
+                {"$set": {"payment_status": previous_status, "transaction_id": ""}, "$unset": {"submitted_at": ""}})
+            raise HTTPException(400, "This discount code has run out")
     return await db.orders.find_one({"session_id": session_id}, ORDER_PUBLIC)
 
 
@@ -299,22 +321,23 @@ async def download(session_id: str):
     if not order: raise HTTPException(404, "Download unavailable")
     p = await db.products.find_one({"id": order["product_id"]}, {"_id": 0})
     if not p: raise HTTPException(404, "Product no longer available")
-    name = p.get("file_name") or "morrow-download.txt"
-    if p.get("storage_path"):
-        data, ctype = get_object(p["storage_path"])
-        ctype = p.get("file_content_type") or ctype
-    else:
-        data, ctype = f"Morrow Market\n\n{p['name']}\n\nThank you for your purchase. (Sample file - the owner hasn't uploaded the real file yet.)".encode(), "text/plain"
-        name = Path(name).stem + "-sample.txt"
+    if not p.get("storage_path"):
+        raise HTTPException(404, "The product file has not been uploaded yet")
+    name = p.get("file_name") or "morrow-download"
+    data, ctype = get_object(p["storage_path"])
+    ctype = p.get("file_content_type") or ctype
     return Response(content=data, media_type=ctype, headers={"Content-Disposition": f'attachment; filename="{name}"'})
 
 
 # ---------- Admin ----------
 def is_admin(user: dict):
+    # Fail closed: an unset Clerk secret must never grant owner access.
+    if not os.environ.get("CLERK_SECRET_KEY") or not os.environ.get("CLERK_PUBLISHABLE_KEY"):
+        return False
     claims = user.get("claims", {})
-    email = (claims.get("email") or claims.get("email_address") or "").lower()
+    email = (claims.get("email") or claims.get("email_address") or "").strip().lower()
     allowed = {x.strip().lower() for x in os.environ.get("ADMIN_EMAIL", "").split(",") if x.strip()}
-    return email in allowed or os.environ.get("CLERK_SECRET_KEY") == ""
+    return bool(email and allowed and email in allowed)
 
 
 async def admin_user(user=Depends(require_user)):
@@ -323,7 +346,9 @@ async def admin_user(user=Depends(require_user)):
 
 
 @api_router.get("/admin/products", response_model=List[Product])
-async def admin_products(_: dict = Depends(admin_user)): return await db.products.find({}, {"_id": 0}).sort("created_at", -1).to_list(100)
+async def admin_products(_: dict = Depends(admin_user)):
+    items = await db.products.find({}, {"_id": 0}).sort("created_at", -1).to_list(100)
+    return [{**item, "file_uploaded": bool(item.get("storage_path"))} for item in items]
 
 
 @api_router.post("/admin/products", response_model=Product)
@@ -350,7 +375,7 @@ async def upload_product_file(product_id: str, file: UploadFile = File(...), _: 
     ctype = file.content_type or "application/octet-stream"
     result = put_object(f"{APP_NAME}/products/{product_id}/{uuid.uuid4()}{ext}", data, ctype)
     await db.products.update_one({"id": product_id}, {"$set": {"file_name": Path(file.filename).name, "storage_path": result["path"], "file_content_type": ctype, "file_size": len(data)}})
-    return {"file_name": Path(file.filename).name, "status": "stored"}
+    return {"file_name": Path(file.filename).name, "status": "stored", "file_uploaded": True}
 
 
 @api_router.get("/admin/orders")

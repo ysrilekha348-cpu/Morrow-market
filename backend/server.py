@@ -304,7 +304,7 @@ async def submit_payment(session_id: str, body: SubmitPaymentIn):
         {"$set": {"transaction_id": transaction_id, "payment_status": "pending_review", "submitted_at": now()}})
     if not res.matched_count:
         raise HTTPException(400, "This order can't accept a payment reference")
-    if order.get("discount_code"):
+    if order.get("discount_code") and previous_status == "awaiting_payment":
         discount = await db.discounts.find_one_and_update(
             usable_filter(order["discount_code"]), {"$inc": {"uses": 1}})
         if not discount:

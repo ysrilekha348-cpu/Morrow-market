@@ -71,3 +71,21 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--gold);outline-offse
   .sort-control select{flex:1;max-width:none}
   .order-search{max-width:none}
 }
+
+.product-admin-item{border-bottom:1px solid var(--line)}
+.product-admin-item:last-child{border:0}
+.product-admin-item .admin-row{border:0}
+.product-admin-actions{display:flex;gap:8px;align-items:center;justify-content:flex-end}
+.product-editor{max-width:none;margin:12px 0 28px;padding:22px;background:var(--cream)}
+.editor-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.publish-toggle{display:flex;align-items:center;gap:9px;font-size:12px;color:#637067}
+.publish-toggle input{accent-color:var(--ink)}
+.sales-overview{margin-top:10px}
+.sales-chart{width:100%;height:230px;margin-top:22px}
+.sales-caption{font-size:11px;color:#788077;margin:10px 0 0}
+@media(max-width:800px){
+ .product-admin-actions{grid-column:2;justify-content:flex-start;flex-wrap:wrap}
+ .product-editor{padding:16px}
+ .editor-fields{grid-template-columns:1fr}
+ .sales-chart{height:210px}
+}

@@ -31,7 +31,8 @@ try:
     from clerk_auth import clerk_router, require_user
 except Exception:
     clerk_router = None
-    def require_user(): return {"user_id": "preview-owner"}
+    def require_user():
+        raise HTTPException(503, "Authentication is unavailable; owner actions are disabled")
 
 
 def now(): return datetime.now(timezone.utc).isoformat()
@@ -248,6 +249,9 @@ async def validate_discount(body: ValidateDiscountIn):
 @api_router.post("/payments/checkout")
 async def checkout(body: CheckoutIn, request: Request, background_tasks: BackgroundTasks):
     item = await find_product(body.product_id)
+    # Never accept an order for a placeholder/sample download.
+    if not item.get("storage_path"):
+        raise HTTPException(409, "This product is not available for download yet")
     amount, code, percent = item["price"], "", 0
     if item["price"] == 0:
         since = (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat()
@@ -299,22 +303,23 @@ async def download(session_id: str):
     if not order: raise HTTPException(404, "Download unavailable")
     p = await db.products.find_one({"id": order["product_id"]}, {"_id": 0})
     if not p: raise HTTPException(404, "Product no longer available")
-    name = p.get("file_name") or "morrow-download.txt"
-    if p.get("storage_path"):
-        data, ctype = get_object(p["storage_path"])
-        ctype = p.get("file_content_type") or ctype
-    else:
-        data, ctype = f"Morrow Market\n\n{p['name']}\n\nThank you for your purchase. (Sample file - the owner hasn't uploaded the real file yet.)".encode(), "text/plain"
-        name = Path(name).stem + "-sample.txt"
+    if not p.get("storage_path"):
+        raise HTTPException(404, "The product file has not been uploaded yet")
+    name = p.get("file_name") or "morrow-download"
+    data, ctype = get_object(p["storage_path"])
+    ctype = p.get("file_content_type") or ctype
     return Response(content=data, media_type=ctype, headers={"Content-Disposition": f'attachment; filename="{name}"'})
 
 
 # ---------- Admin ----------
 def is_admin(user: dict):
+    # Fail closed: an unset Clerk secret must never grant owner access.
+    if not os.environ.get("CLERK_SECRET_KEY") or not os.environ.get("CLERK_PUBLISHABLE_KEY"):
+        return False
     claims = user.get("claims", {})
-    email = (claims.get("email") or claims.get("email_address") or "").lower()
+    email = (claims.get("email") or claims.get("email_address") or "").strip().lower()
     allowed = {x.strip().lower() for x in os.environ.get("ADMIN_EMAIL", "").split(",") if x.strip()}
-    return email in allowed or os.environ.get("CLERK_SECRET_KEY") == ""
+    return bool(email and allowed and email in allowed)
 
 
 async def admin_user(user=Depends(require_user)):

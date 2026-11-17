@@ -28,7 +28,7 @@ function Filters({ cats, category, setCategory, query, setQuery, sort, setSort }
     <div className="filter-row">
       <div className="pills">
         {cats.map(c => (
-          <button key={c} className={category === c ? "pill active" : "pill"} onClick={() => setCategory(c)} data-testid={`category-${c.toLowerCase().replace(/\\s+/g, "-")}`}>{c}</button>
+          <button key={c} className={category === c ? "pill active" : "pill"} onClick={() => setCategory(c)} data-testid={`category-${c.toLowerCase().replace(/\s+/g, "-")}`}>{c}</button>
         ))}
       </div>
       <label className="search"><Search size={16} /><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search name, category or details" aria-label="Search products" data-testid="product-search-input" /></label>

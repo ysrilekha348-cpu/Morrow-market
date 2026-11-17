@@ -1,0 +1,572 @@
+[
+  {
+    "_id": {
+      "$oid": "6ae322b83721ab73a3427447"
+    },
+    "id": "weekly-reset",
+    "name": "The Weekly Reset",
+    "description": "A gentle planning system for people who want their weeks to feel lighter, not louder.",
+    "price": 499.0,
+    "category": "Workbooks",
+    "tag": "Bestseller",
+    "image_url": "https://images.unsplash.com/photo-1517842645767-c639042777db?auto=format&fit=crop&w=1000&q=85",
+    "published": true,
+    "file_name": "the-weekly-reset.pdf",
+    "created_at": "2026-10-29T10:40:56.462954+00:00",
+    "file_content_type": "application/pdf",
+    "file_size": 55738,
+    "storage_path": "morrow-market/products/weekly-reset/c2d4e3a8-79ba-4253-b9c1-a23fa750b7ac.pdf",
+    "file_hash": "d95fd4608f1777602aca37e90cf27a8f95fb022dcae24b4941c05deeb457e9f1"
+  },
+  {
+    "_id": {
+      "$oid": "6ae322b83721ab73a3427448"
+    },
+    "id": "quiet-brand",
+    "name": "Quiet Brand Kit",
+    "description": "A considered visual direction kit for small brands ready to look like themselves.",
+    "price": 899.0,
+    "category": "Templates",
+    "tag": "Fresh drop",
+    "image_url": "https://images.unsplash.com/photo-1558655146-9f40138edfeb?auto=format&fit=crop&w=1000&q=85",
+    "published": true,
+    "file_name": "quiet-brand-kit.pdf",
+    "created_at": "2026-10-29T10:40:56.462954+00:00",
+    "file_content_type": "application/pdf",
+    "file_size": 45704,
+    "storage_path": "morrow-market/products/quiet-brand/75efd89e-7d15-4158-9fc3-949b5d59c62c.pdf",
+    "file_hash": "0609036b387d1478b730c99290feffc67629f24bbc2b7a1e4211b6daa4d1a2e1"
+  },
+  {
+    "_id": {
+      "$oid": "6ae322b83721ab73a3427449"
+    },
+    "id": "slow-content",
+    "name": "Slow Content Calendar",
+    "description": "30 thoughtful prompts to keep showing up without becoming a content machine.",
+    "price": 299.0,
+    "category": "Planning",
+    "tag": "Popular",
+    "image_url": "https://images.unsplash.com/photo-1499750310107-5fef28a66643?auto=format&fit=crop&w=1000&q=85",
+    "published": true,
+    "file_name": "slow-content-calendar.pdf",
+    "created_at": "2026-10-29T10:40:56.462954+00:00",
+    "file_content_type": "application/pdf",
+    "file_size": 46932,
+    "storage_path": "morrow-market/products/slow-content/b78e7598-1ca6-4f8a-b067-cc574d4b2624.pdf",
+    "file_hash": "4464eaec496afbf5c3f1fe69ca14839a3edfadcf922727812aaa1c33c2b0ac01"
+  },
+  {
+    "_id": {
+      "$oid": "6afbd5a505eec45126f5b902"
+    },
+    "id": "free-planner",
+    "category": "Free templates",
+    "created_at": "2026-11-17T04:18:45.291204+00:00",
+    "description": "A beautifully simple weekly planner for making space for what matters.",
+    "file_name": "free-weekly-planner.pdf",
+    "image_url": "https://images.unsplash.com/photo-1506784983877-45594efa4cbe?auto=format&fit=crop&w=1000&q=85",
+    "name": "A Calmer Week",
+    "price": 0.0,
+    "published": true,
+    "tag": "Free",
+    "file_content_type": "application/pdf",
+    "file_size": 38584,
+    "storage_path": "morrow-market/products/free-planner/66fad5b9-be57-495f-bca6-a36ae50e72f7.pdf",
+    "file_hash": "7991e24d38fe2647ed2212afcf2b9702eecacd146a7a37f35ce773ea54b5050f"
+  },
+  {
+    "_id": {
+      "$oid": "6afbd5a505eec45126f5b904"
+    },
+    "id": "free-moodboard",
+    "category": "Free templates",
+    "created_at": "2026-11-17T04:18:45.293578+00:00",
+    "description": "A guided one-page exercise to find the colours, textures and words that feel like you.",
+    "file_name": "free-brand-moodboard.pdf",
+    "image_url": "https://images.unsplash.com/photo-1542744095-fcf48d80b0fd?auto=format&fit=crop&w=1000&q=85",
+    "name": "Brand Moodboard",
+    "price": 0.0,
+    "published": true,
+    "tag": "Free",
+    "file_content_type": "application/pdf",
+    "file_size": 39317,
+    "storage_path": "morrow-market/products/free-moodboard/07f37c9b-c008-4a41-b220-fa1c422dafc6.pdf",
+    "file_hash": "dc33dda1581fbc7bd38ef265523bd2cd7b84532fdc1308470f6591f526ac48e1"
+  },
+  {
+    "_id": {
+      "$oid": "6afbdad005eec45126f5c034"
+    },
+    "id": "money-map",
+    "category": "Financial tracker",
+    "created_at": "2026-11-17T04:40:48.507192+00:00",
+    "description": "A clear monthly system for knowing where your money goes and what it is helping you build.",
+    "file_name": "money-map-bundle.zip",
+    "image_url": "https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=1000&q=85",
+    "name": "Money Map Financial Tracker",
+    "price": 299.0,
+    "published": true,
+    "tag": "New",
+    "file_content_type": "application/zip",
+    "file_size": 40775,
+    "storage_path": "morrow-market/products/money-map/fddcc071-1cf9-4e7a-96dc-dd51037d3650.zip",
+    "file_hash": "5885a807d9df8adfbc364aded43b097af8b302050c198c3aabadf9ccecd5bb3f"
+  },
+  {
+    "_id": {
+      "$oid": "6afbdad005eec45126f5c036"
+    },
+    "id": "monthly-budget",
+    "category": "Budgeting",
+    "created_at": "2026-11-17T04:40:48.507562+00:00",
+    "description": "A calm, practical budget with income, bills, sinking funds and weekly check-ins.",
+    "file_name": "monthly-budget-bundle.zip",
+    "image_url": "https://images.unsplash.com/photo-1554224154-22dec7ec8818?auto=format&fit=crop&w=1000&q=85",
+    "name": "Monthly Budget Planner",
+    "price": 199.0,
+    "published": true,
+    "tag": "Popular",
+    "file_content_type": "application/zip",
+    "file_size": 40775,
+    "storage_path": "morrow-market/products/monthly-budget/3f710b4b-2836-4598-ae46-a4a74387fe04.zip",
+    "file_hash": "7341f2736fe7dea83e56f7424fb71913f809d346ca563f69bc533ef415f133d9"
+  },
+  {
+    "_id": {
+      "$oid": "6afbdad005eec45126f5c038"
+    },
+    "id": "debt-payoff",
+    "category": "Finance",
+    "created_at": "2026-11-17T04:40:48.507896+00:00",
+    "description": "A motivating visual plan for choosing a payoff strategy and watching your balance shrink.",
+    "file_name": "debt-payoff-bundle.zip",
+    "image_url": "https://images.unsplash.com/photo-1450101499163-c8848c66ca85?auto=format&fit=crop&w=1000&q=85",
+    "name": "Debt Payoff Tracker",
+    "price": 249.0,
+    "published": true,
+    "tag": "Useful",
+    "file_content_type": "application/zip",
+    "file_size": 40735,
+    "storage_path": "morrow-market/products/debt-payoff/f183be10-7b66-4689-9956-0a622d760f51.zip",
+    "file_hash": "e051ddcd450bea59ac4cbc6552295d2adafd6f2e328267eb41985633b5b6bbb7"
+  },
+  {
+    "_id": {
+      "$oid": "6afbdad005eec45126f5c03a"
+    },
+    "id": "savings-goals",
+    "category": "Finance",
+    "created_at": "2026-11-17T04:40:48.508174+00:00",
+    "description": "Turn big savings goals into small, visible milestones you can keep showing up for.",
+    "file_name": "savings-goals.pdf",
+    "image_url": "https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?auto=format&fit=crop&w=1000&q=85",
+    "name": "Savings Goals Planner",
+    "price": 149.0,
+    "published": true,
+    "tag": "New",
+    "file_content_type": "application/pdf",
+    "file_size": 39406,
+    "storage_path": "morrow-market/products/savings-goals/f5428a63-ea26-4bfa-bf27-c90f23a434fb.pdf",
+    "file_hash": "f0ea6106f3fb6078a21b54728f8f640b4b8bcd3f9dd651e339b1ebb929e7d1f1"
+  },
+  {
+    "_id": {
+      "$oid": "6afbdad005eec45126f5c03c"
+    },
+    "id": "subscription-audit",
+    "category": "Finance",
+    "created_at": "2026-11-17T04:40:48.508434+00:00",
+    "description": "Find the quiet leaks in your monthly spending and make room for what you actually use.",
+    "file_name": "subscription-audit.pdf",
+    "image_url": "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&w=1000&q=85",
+    "name": "Subscription Audit",
+    "price": 99.0,
+    "published": true,
+    "tag": "Quick win",
+    "file_content_type": "application/pdf",
+    "file_size": 39430,
+    "storage_path": "morrow-market/products/subscription-audit/109db540-d4ac-43b4-99b7-d8f6f121f126.pdf",
+    "file_hash": "9616d673c98c10596094be0fde7619ba03fcbd446bc04e43b87b80d42921eddf"
+  },
+  {
+    "_id": {
+      "$oid": "6afbdad005eec45126f5c03e"
+    },
+    "id": "income-invoice",
+    "category": "Business",
+    "created_at": "2026-11-17T04:40:48.508838+00:00",
+    "description": "A simple system for tracking paid work, open invoices, follow-ups and income by month.",
+    "file_name": "income-invoice-bundle.zip",
+    "image_url": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=1000&q=85",
+    "name": "Income & Invoice Tracker",
+    "price": 199.0,
+    "published": true,
+    "tag": "New",
+    "file_content_type": "application/zip",
+    "file_size": 40720,
+    "storage_path": "morrow-market/products/income-invoice/9d7f5262-8fed-4c3d-a549-aa0c062a1c8f.zip",
+    "file_hash": "b34429644f61fd0a423b1f8b2c8e32f5487d2bf6fd4de09916a4d30ef768dee6"
+  },
+  {
+    "_id": {
+      "$oid": "6afbdad005eec45126f5c040"
+    },
+    "id": "freelancer-finance",
+    "category": "Business",
+    "created_at": "2026-11-17T04:40:48.509253+00:00",
+    "description": "A practical money dashboard for irregular income, taxes, expenses and a steadier business.",
+    "file_name": "freelancer-finance-bundle.zip",
+    "image_url": "https://images.unsplash.com/photo-1556761175-b413da4baf72?auto=format&fit=crop&w=1000&q=85",
+    "name": "Freelancer Finance Dashboard",
+    "price": 499.0,
+    "published": true,
+    "tag": "Premium",
+    "file_content_type": "application/zip",
+    "file_size": 40791,
+    "storage_path": "morrow-market/products/freelancer-finance/bd5e2021-1ac7-4ac9-8f52-84760b303e3c.zip",
+    "file_hash": "7819ff62c0cd391c8496eab9d52cc68dae81fef51159eb5894aa24eaf5c0066e"
+  },
+  {
+    "_id": {
+      "$oid": "6afbdad005eec45126f5c042"
+    },
+    "id": "content-batch",
+    "category": "Planning",
+    "created_at": "2026-11-17T04:40:48.509672+00:00",
+    "description": "Plan a full month of thoughtful content in a few focused sessions without becoming a content machine.",
+    "file_name": "content-batch-bundle.zip",
+    "image_url": "https://images.unsplash.com/photo-1553877522-43269d4ea984?auto=format&fit=crop&w=1000&q=85",
+    "name": "Content Batch Planner",
+    "price": 199.0,
+    "published": true,
+    "tag": "Popular",
+    "file_content_type": "application/zip",
+    "file_size": 40750,
+    "storage_path": "morrow-market/products/content-batch/e2400747-37de-4a35-bfab-4a0b6440396f.zip",
+    "file_hash": "a1358c51f335dcab0bdc5e4a60c3b640343bb3d288ea40df830e4ee5ba4c7468"
+  },
+  {
+    "_id": {
+      "$oid": "6afbdad005eec45126f5c044"
+    },
+    "id": "client-onboarding",
+    "category": "Business",
+    "created_at": "2026-11-17T04:40:48.510058+00:00",
+    "description": "A warm, clear client journey with welcome notes, information gathering and next steps.",
+    "file_name": "client-onboarding.pdf",
+    "image_url": "https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=1000&q=85",
+    "name": "Client Onboarding Kit",
+    "price": 299.0,
+    "published": true,
+    "tag": "Premium",
+    "file_content_type": "application/pdf",
+    "file_size": 39451,
+    "storage_path": "morrow-market/products/client-onboarding/ee8cb131-814e-46dc-b4db-d8fd6fb7b4fc.pdf",
+    "file_hash": "cfac15f92e05b25ab984f3d4f91d8d4cc4fed527676139375c5132eb4c1c0e8e"
+  },
+  {
+    "_id": {
+      "$oid": "6afbdad005eec45126f5c046"
+    },
+    "id": "project-scope",
+    "category": "Business",
+    "created_at": "2026-11-17T04:40:48.510430+00:00",
+    "description": "Set kind boundaries, define deliverables and make the work easier to agree on before it begins.",
+    "file_name": "project-scope.pdf",
+    "image_url": "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=1000&q=85",
+    "name": "Project Scope Planner",
+    "price": 249.0,
+    "published": true,
+    "tag": "Useful",
+    "file_content_type": "application/pdf",
+    "file_size": 39436,
+    "storage_path": "morrow-market/products/project-scope/d9fa976c-4c77-4486-928b-6ca1768417bd.pdf",
+    "file_hash": "c2f21637235da6a9735431a23a509ab52b678dcceaa7989f3f92132f7823d7cd"
+  },
+  {
+    "_id": {
+      "$oid": "6afbdad005eec45126f5c048"
+    },
+    "id": "meeting-notes",
+    "category": "Planning",
+    "created_at": "2026-11-17T04:40:48.510715+00:00",
+    "description": "A focused meeting page that turns conversation into decisions, owners and next actions.",
+    "file_name": "meeting-notes.pdf",
+    "image_url": "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=1000&q=85",
+    "name": "Meeting Notes System",
+    "price": 129.0,
+    "published": true,
+    "tag": "Quick win",
+    "file_content_type": "application/pdf",
+    "file_size": 39376,
+    "storage_path": "morrow-market/products/meeting-notes/6c3c923e-202c-45e1-9e7c-f5b5598c59c6.pdf",
+    "file_hash": "591ac8671b26acd6028780cce9e7564717e26ec2335f04bbfd446f9eda65dcae"
+  },
+  {
+    "_id": {
+      "$oid": "6afbdad005eec45126f5c04a"
+    },
+    "id": "job-search",
+    "category": "Career",
+    "created_at": "2026-11-17T04:40:48.510973+00:00",
+    "description": "Keep applications, follow-ups, networking and interview notes in one calm, confidence-building system.",
+    "file_name": "job-search-bundle.zip",
+    "image_url": "https://images.unsplash.com/photo-1521737711867-e3b97375f902?auto=format&fit=crop&w=1000&q=85",
+    "name": "Job Search Tracker",
+    "price": 199.0,
+    "published": true,
+    "tag": "New",
+    "file_content_type": "application/zip",
+    "file_size": 40725,
+    "storage_path": "morrow-market/products/job-search/5ab21142-4b69-451a-ae4a-d152e003e126.zip",
+    "file_hash": "fb9b3548893bb7dcaa45f1670389c85e094886d226d3c67102a5a0863c847387"
+  },
+  {
+    "_id": {
+      "$oid": "6afbdad005eec45126f5c04c"
+    },
+    "id": "meal-grocery",
+    "category": "Home",
+    "created_at": "2026-11-17T04:40:48.511291+00:00",
+    "description": "Plan flexible meals, use what you have and make the weekly shop feel lighter.",
+    "file_name": "meal-grocery.pdf",
+    "image_url": "https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=1000&q=85",
+    "name": "Meal & Grocery Planner",
+    "price": 149.0,
+    "published": true,
+    "tag": "Popular",
+    "file_content_type": "application/pdf",
+    "file_size": 39419,
+    "storage_path": "morrow-market/products/meal-grocery/d1548cc1-713c-465d-b6a1-4bc48686f883.pdf",
+    "file_hash": "4b89e4605839040904dd25f9457afcd2fc1b3b1f3c6d913a7b14dcfe1d8e46c0"
+  },
+  {
+    "_id": {
+      "$oid": "6afbdad005eec45126f5c04e"
+    },
+    "id": "home-reset",
+    "category": "Home",
+    "created_at": "2026-11-17T04:40:48.511633+00:00",
+    "description": "A gentle room-by-room reset for creating a home that supports the way you actually live.",
+    "file_name": "home-reset.pdf",
+    "image_url": "https://images.unsplash.com/photo-1484101403633-562f891dc89a?auto=format&fit=crop&w=1000&q=85",
+    "name": "Home Reset Planner",
+    "price": 99.0,
+    "published": true,
+    "tag": "Quick win",
+    "file_content_type": "application/pdf",
+    "file_size": 39374,
+    "storage_path": "morrow-market/products/home-reset/1487d222-500c-4eae-8026-f8be2b044def.pdf",
+    "file_hash": "e1c0a75c340a4f9f35250e51069cf2e4852d06a4fccea007d4a7694fa91bb3f0"
+  },
+  {
+    "_id": {
+      "$oid": "6afbdad005eec45126f5c050"
+    },
+    "id": "self-care",
+    "category": "Wellbeing",
+    "created_at": "2026-11-17T04:40:48.512006+00:00",
+    "description": "A soft, no-pressure tracker for small rituals that help you feel more like yourself.",
+    "file_name": "self-care.pdf",
+    "image_url": "https://images.unsplash.com/photo-1515377905703-c4788e51af15?auto=format&fit=crop&w=1000&q=85",
+    "name": "Self-Care Habit Tracker",
+    "price": 129.0,
+    "published": true,
+    "tag": "New",
+    "file_content_type": "application/pdf",
+    "file_size": 39419,
+    "storage_path": "morrow-market/products/self-care/521ea055-d228-4ac1-ad16-d8fb1d21da96.pdf",
+    "file_hash": "0888e0cf199606954c2d9c1bb14cc9b2bbd680b7a97b1b51a16ebf3619af3193"
+  },
+  {
+    "_id": {
+      "$oid": "6afbdcf405eec45126f5c7f8"
+    },
+    "id": "study-planner",
+    "category": "Education",
+    "created_at": "2026-11-17T04:49:56.699802+00:00",
+    "description": "A focused study system for turning a big syllabus into calm, trackable sessions.",
+    "file_name": "study-planner.pdf",
+    "image_url": "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&w=1000&q=85",
+    "name": "Study Sprint Planner",
+    "price": 149.0,
+    "published": true,
+    "tag": "New",
+    "file_content_type": "application/pdf",
+    "file_size": 39407,
+    "storage_path": "morrow-market/products/study-planner/d9e32790-e27a-4314-aa54-0da33a87b4d1.pdf",
+    "file_hash": "c0cfba26730f921d36725b2f2acd6f0590b3e1dac321751260a72be9cd356dcf"
+  },
+  {
+    "_id": {
+      "$oid": "6afbdcf405eec45126f5c7fa"
+    },
+    "id": "reading-journal",
+    "category": "Lifestyle",
+    "created_at": "2026-11-17T04:49:56.700135+00:00",
+    "description": "A beautiful place to collect ideas, favourite lines and the books that stay with you.",
+    "file_name": "reading-journal.pdf",
+    "image_url": "https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=1000&q=85",
+    "name": "Reading Journal",
+    "price": 99.0,
+    "published": true,
+    "tag": "New",
+    "file_content_type": "application/pdf",
+    "file_size": 39392,
+    "storage_path": "morrow-market/products/reading-journal/9d319e54-056a-41b1-8ddb-85adb5c68a1b.pdf",
+    "file_hash": "dc8a23beec924457df9a79953176a63b3cb804afb5798f1f9d8956aaf10ee3c8"
+  },
+  {
+    "_id": {
+      "$oid": "6afbdcf405eec45126f5c7fc"
+    },
+    "id": "wedding-planner",
+    "category": "Finance",
+    "created_at": "2026-11-17T04:49:56.700389+00:00",
+    "description": "Keep the joy in the planning with a practical budget, vendor list and payment calendar.",
+    "file_name": "wedding-planner-bundle.zip",
+    "image_url": "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=1000&q=85",
+    "name": "Wedding Planning Budget",
+    "price": 299.0,
+    "published": true,
+    "tag": "New",
+    "file_content_type": "application/zip",
+    "file_size": 40751,
+    "storage_path": "morrow-market/products/wedding-planner/d6179a69-58b5-413a-bdeb-b1be5a38d781.zip",
+    "file_hash": "aaaaea2a6b7f0d501e3a4cc1fe0279e132dfb7ab5c5c37ebfed58f848d0c2502"
+  },
+  {
+    "_id": {
+      "$oid": "6afbdcf405eec45126f5c7fe"
+    },
+    "id": "travel-planner",
+    "category": "Travel",
+    "created_at": "2026-11-17T04:49:56.700639+00:00",
+    "description": "Map the details without overplanning the magic: stays, routes, reservations and room to wander.",
+    "file_name": "travel-planner.pdf",
+    "image_url": "https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=1000&q=85",
+    "name": "Travel Itinerary Planner",
+    "price": 199.0,
+    "published": true,
+    "tag": "New",
+    "file_content_type": "application/pdf",
+    "file_size": 39456,
+    "storage_path": "morrow-market/products/travel-planner/4e6c4215-e20f-4783-b395-17e1186d0110.pdf",
+    "file_hash": "d846db55c83493cc2d43e523628aa46e181f961ae5e06bcc1f0737c10bc2b2a8"
+  },
+  {
+    "_id": {
+      "$oid": "6afbdcf405eec45126f5c800"
+    },
+    "id": "moving-home",
+    "category": "Home",
+    "created_at": "2026-11-17T04:49:56.700919+00:00",
+    "description": "A room-by-room move plan for packing, changing addresses and settling in without the scramble.",
+    "file_name": "moving-home.pdf",
+    "image_url": "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1000&q=85",
+    "name": "Moving Home Checklist",
+    "price": 149.0,
+    "published": true,
+    "tag": "New",
+    "file_content_type": "application/pdf",
+    "file_size": 39449,
+    "storage_path": "morrow-market/products/moving-home/f3f22d05-7374-41b0-9b0e-e214708766a3.pdf",
+    "file_hash": "2c4c9d3f17f19847d1326e2c0f46adf5d6a5ca2d64c654cc9b69eb95fe2e1f16"
+  },
+  {
+    "_id": {
+      "$oid": "6afbdcf405eec45126f5c802"
+    },
+    "id": "pet-care",
+    "category": "Home",
+    "created_at": "2026-11-17T04:49:56.701201+00:00",
+    "description": "Keep routines, appointments, medications and the little details of caring for your companion together.",
+    "file_name": "pet-care.pdf",
+    "image_url": "https://images.unsplash.com/photo-1450778869180-41d0601e046e?auto=format&fit=crop&w=1000&q=85",
+    "name": "Pet Care Tracker",
+    "price": 129.0,
+    "published": true,
+    "tag": "New",
+    "file_content_type": "application/pdf",
+    "file_size": 39427,
+    "storage_path": "morrow-market/products/pet-care/f98feb79-db58-43db-ba80-27d3b035d7fc.pdf",
+    "file_hash": "cbd4891c46237c2c4b12116abb7b3efcfdb0cdc04977df16d12d39af3a2b3ff6"
+  },
+  {
+    "_id": {
+      "$oid": "6afbdcf405eec45126f5c804"
+    },
+    "id": "fitness-log",
+    "category": "Wellbeing",
+    "created_at": "2026-11-17T04:49:56.701445+00:00",
+    "description": "Track movement, energy and recovery without turning your body into a performance report.",
+    "file_name": "fitness-log.pdf",
+    "image_url": "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=1000&q=85",
+    "name": "Gentle Fitness Log",
+    "price": 149.0,
+    "published": true,
+    "tag": "New",
+    "file_content_type": "application/pdf",
+    "file_size": 39406,
+    "storage_path": "morrow-market/products/fitness-log/ca77a025-3341-47ab-a3b4-30317fd339cf.pdf",
+    "file_hash": "79d28ae6fa1f2574b3fbff25e3d52ec75ad797dcf5ca847b243d4410749d4380"
+  },
+  {
+    "_id": {
+      "$oid": "6afbdcf405eec45126f5c806"
+    },
+    "id": "digital-detox",
+    "category": "Wellbeing",
+    "created_at": "2026-11-17T04:49:56.701699+00:00",
+    "description": "A thoughtful reset for your attention, notifications and the parts of your day you want back.",
+    "file_name": "digital-detox.pdf",
+    "image_url": "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1000&q=85",
+    "name": "Digital Detox Planner",
+    "price": 99.0,
+    "published": true,
+    "tag": "New",
+    "file_content_type": "application/pdf",
+    "file_size": 39430,
+    "storage_path": "morrow-market/products/digital-detox/713b7d73-0910-45e5-b936-8a3167a410c0.pdf",
+    "file_hash": "d6a9107c1d13628047267014e30a0cb9da7df025796e58a2b83555c68daa6770"
+  },
+  {
+    "_id": {
+      "$oid": "6afbdcf405eec45126f5c808"
+    },
+    "id": "gift-planner",
+    "category": "Lifestyle",
+    "created_at": "2026-11-17T04:49:56.701971+00:00",
+    "description": "Remember birthdays, ideas, budgets and the thoughtful details that make gifts feel personal.",
+    "file_name": "gift-planner.pdf",
+    "image_url": "https://images.unsplash.com/photo-1513885535751-8b9238bd345a?auto=format&fit=crop&w=1000&q=85",
+    "name": "Gift Planning List",
+    "price": 99.0,
+    "published": true,
+    "tag": "New",
+    "file_content_type": "application/pdf",
+    "file_size": 39414,
+    "storage_path": "morrow-market/products/gift-planner/1f0f4095-1ebd-42d6-b8a1-3c01d39a38ef.pdf",
+    "file_hash": "78d46f9681999a2388d6543a8270643a8059f1fd106de37bcf0b3d6cba72780f"
+  },
+  {
+    "_id": {
+      "$oid": "6afbdcf405eec45126f5c80a"
+    },
+    "id": "course-launch",
+    "category": "Business",
+    "created_at": "2026-11-17T04:49:56.702222+00:00",
+    "description": "Turn your knowledge into a clear launch plan with lessons, emails, content and a kinder timeline.",
+    "file_name": "course-launch-bundle.zip",
+    "image_url": "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1000&q=85",
+    "name": "Course Launch Planner",
+    "price": 299.0,
+    "published": true,
+    "tag": "New",
+    "file_content_type": "application/zip",
+    "file_size": 40763,
+    "storage_path": "morrow-market/products/course-launch/277f42a5-b694-4bd4-8346-e799eccb063d.zip",
+    "file_hash": "f26ae7d4bd5bc6ddd85a9ab4a51f311d763c62a42b1d2bf1372f323e00635cba"
+  }
+]

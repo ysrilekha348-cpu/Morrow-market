@@ -38,3 +38,4 @@
 - Split the 37-line minified App.js into pages/ (Storefront, ProductPage, Checkout, PayPage, Success, Admin), components/store, components/admin, hooks/useProduct, lib/store + lib/previewText. Behavior and data-testids unchanged.
 - Fixed hook dependencies (removed module-constant deps), replaced silent catches with console.warn, made promo code copy handle clipboard errors.
 - storage._request: fixed headers being lost on retry; email_service._assert_safe_email split into _check_* helpers; test_gpay_flow split into focused tests that clean up by session id.
+- 2026-06: Exported store data to /app/data_export/*.json (products 30, orders 6, discounts 1, settings 1); restore with `python scripts/import_data.py [folder]` (tested against a scratch DB).

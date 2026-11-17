@@ -1,0 +1,10 @@
+[
+  {
+    "_id": {
+      "$oid": "6ae325ac34d8a869fb041bf5"
+    },
+    "id": "store",
+    "gpay_number": "9337939011",
+    "qr_path": ""
+  }
+]

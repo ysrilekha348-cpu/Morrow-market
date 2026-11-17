@@ -1,0 +1,15 @@
+[
+  {
+    "_id": {
+      "$oid": "6ae32e43d3fedf1453ab717a"
+    },
+    "code": "EARLY20",
+    "active": true,
+    "created_at": "2026-10-29T11:30:11.034790+00:00",
+    "id": "c9a35155-3302-41de-950e-3d832abdee4f",
+    "max_uses": 50,
+    "percent": 20,
+    "uses": 0,
+    "featured": true
+  }
+]

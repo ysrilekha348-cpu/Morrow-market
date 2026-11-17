@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field, EmailStr
 from typing import List, Optional
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
+import mimetypes
 import os, uuid, logging
 
 ROOT_DIR = Path(__file__).parent
@@ -88,6 +89,21 @@ SEED = [
     ("slow-content", "Slow Content Calendar", "30 thoughtful prompts to keep showing up without becoming a content machine.", 299, "Planning", "Popular", "photo-1499750310107-5fef28a66643", "slow-content-calendar.pdf"),
     ("free-planner", "A Calmer Week", "A beautifully simple weekly planner for making space for what matters.", 0, "Free templates", "Free", "photo-1506784983877-45594efa4cbe", "free-weekly-planner.pdf"),
     ("free-moodboard", "Brand Moodboard", "A guided one-page exercise to find the colours, textures and words that feel like you.", 0, "Free templates", "Free", "photo-1542744095-fcf48d80b0fd", "free-brand-moodboard.pdf"),
+    ("money-map", "Money Map Financial Tracker", "A clear monthly system for knowing where your money goes and what it is helping you build.", 299, "Financial tracker", "New", "photo-1554224155-6726b3ff858f", "money-map-bundle.zip"),
+    ("monthly-budget", "Monthly Budget Planner", "A calm, practical budget with income, bills, sinking funds and weekly check-ins.", 199, "Budgeting", "Popular", "photo-1554224154-22dec7ec8818", "monthly-budget-bundle.zip"),
+    ("debt-payoff", "Debt Payoff Tracker", "A motivating visual plan for choosing a payoff strategy and watching your balance shrink.", 249, "Finance", "Useful", "photo-1450101499163-c8848c66ca85", "debt-payoff-bundle.zip"),
+    ("savings-goals", "Savings Goals Planner", "Turn big savings goals into small, visible milestones you can keep showing up for.", 149, "Finance", "New", "photo-1579621970563-ebec7560ff3e", "savings-goals.pdf"),
+    ("subscription-audit", "Subscription Audit", "Find the quiet leaks in your monthly spending and make room for what you actually use.", 99, "Finance", "Quick win", "photo-1556742049-0cfed4f6a45d", "subscription-audit.pdf"),
+    ("income-invoice", "Income & Invoice Tracker", "A simple system for tracking paid work, open invoices, follow-ups and income by month.", 199, "Business", "New", "photo-1554224155-8d04cb21cd6c", "income-invoice-bundle.zip"),
+    ("freelancer-finance", "Freelancer Finance Dashboard", "A practical money dashboard for irregular income, taxes, expenses and a steadier business.", 499, "Business", "Premium", "photo-1556761175-b413da4baf72", "freelancer-finance-bundle.zip"),
+    ("content-batch", "Content Batch Planner", "Plan a full month of thoughtful content in a few focused sessions without becoming a content machine.", 199, "Planning", "Popular", "photo-1499750310107-5fef28a66643", "content-batch-bundle.zip"),
+    ("client-onboarding", "Client Onboarding Kit", "A warm, clear client journey with welcome notes, information gathering and next steps.", 299, "Business", "Premium", "photo-1552664730-d307ca884978", "client-onboarding.pdf"),
+    ("project-scope", "Project Scope Planner", "Set kind boundaries, define deliverables and make the work easier to agree on before it begins.", 249, "Business", "Useful", "photo-1454165804606-c3d57bc86b40", "project-scope.pdf"),
+    ("meeting-notes", "Meeting Notes System", "A focused meeting page that turns conversation into decisions, owners and next actions.", 129, "Planning", "Quick win", "photo-1517245386807-bb43f82c33c4", "meeting-notes.pdf"),
+    ("job-search", "Job Search Tracker", "Keep applications, follow-ups, networking and interview notes in one calm, confidence-building system.", 199, "Career", "New", "photo-1521737711867-e3b97375f902", "job-search-bundle.zip"),
+    ("meal-grocery", "Meal & Grocery Planner", "Plan flexible meals, use what you have and make the weekly shop feel lighter.", 149, "Home", "Popular", "photo-1498837167922-ddd27525d352", "meal-grocery.pdf"),
+    ("home-reset", "Home Reset Planner", "A gentle room-by-room reset for creating a home that supports the way you actually live.", 99, "Home", "Quick win", "photo-1484101403633-562f891dc89a", "home-reset.pdf"),
+    ("self-care", "Self-Care Habit Tracker", "A soft, no-pressure tracker for small rituals that help you feel more like yourself.", 129, "Wellbeing", "New", "photo-1515377905703-c4788e51af15", "self-care.pdf"),
 ]
 OLD_USD_PRICES = {"weekly-reset": 18.0, "quiet-brand": 32.0, "slow-content": 12.0}
 
@@ -117,8 +133,10 @@ async def upload_seed_files():
         local = SEED_DIR / fname
         if not local.exists() or await db.products.find_one({"id": pid, "storage_path": {"$exists": True}}):
             continue
-        result = put_object(f"{APP_NAME}/products/{pid}/{uuid.uuid4()}.pdf", local.read_bytes(), "application/pdf")
-        await db.products.update_one({"id": pid}, {"$set": {"file_name": fname, "storage_path": result["path"], "file_content_type": "application/pdf", "file_size": local.stat().st_size}})
+        ext = local.suffix or ".bin"
+        ctype = mimetypes.guess_type(local.name)[0] or "application/octet-stream"
+        result = put_object(f"{APP_NAME}/products/{pid}/{uuid.uuid4()}{ext}", local.read_bytes(), ctype)
+        await db.products.update_one({"id": pid}, {"$set": {"file_name": fname, "storage_path": result["path"], "file_content_type": ctype, "file_size": local.stat().st_size}})
         logger.info(f"Uploaded seed workbook {fname}")
 
 

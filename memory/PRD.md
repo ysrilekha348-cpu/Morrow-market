@@ -23,6 +23,7 @@
 - 2026-06: Real branded PDF workbooks (Weekly Reset 17pp, Quiet Brand Kit 9pp, Slow Content Calendar 10pp) built by scripts/make_workbooks.py into backend/seed_files/. They upload to object storage on startup if missing. Launch code EARLY20 (20% off, 50 uses) is seeded. Discounted prices round to whole rupees.
 - 2026-06: Added interactive product browsing (quick view, save/favourite buttons), workbook preview carousel, checkout progress feedback, order filters, two free downloadable templates, instant free delivery emails, and instant free PDF downloads.
 - 2026-06: Added interactive browsing, favourites, quick-view, preview carousel, checkout progress, order filters, two free templates, instant free delivery, copy-safe email text, and light free-download throttling.
+- 2026-06: Added 15 new paid, useful templates across finance, business, planning, career, home and wellbeing. Finance products include printable PDFs; selected trackers include editable spreadsheet bundles packaged with the PDF. Prices range ₹99–₹499.
 
 ## Backlog
 - P0: Owner uploads the QR

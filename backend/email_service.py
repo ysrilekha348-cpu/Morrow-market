@@ -150,3 +150,44 @@ def approval_email(order: dict, status_url: str) -> tuple[str, str]:
 <tr><td style="border-top:1px solid #d9dbd2;padding:18px 32px;font-family:Arial,sans-serif;font-size:11px;color:#9aa29b">Sent by {brand} {reason}. We never ask for your password or card details by email.</td></tr>
 </table></td></tr></table>"""
     return subject, html
+
+
+def _stat_cell(label: str, value: str) -> str:
+    return (f'<td style="padding:14px 16px;border:1px solid #d9dbd2;font-family:Arial,sans-serif">'
+            f'<div style="font-size:11px;letter-spacing:1px;color:#7a857d">{label}</div>'
+            f'<div style="font-family:Georgia,serif;font-size:24px;color:#29352f;padding-top:4px">{value}</div></td>')
+
+
+def _waiting_rows(waiting: list) -> str:
+    if not waiting:
+        return '<p style="font-family:Arial,sans-serif;font-size:14px;color:#5f6b63">Nothing is waiting for you. All payments are reviewed.</p>'
+    rows = "".join(
+        f'<tr><td style="padding:10px 0;border-bottom:1px solid #eceee8;font-family:Arial,sans-serif;font-size:13px;color:#29352f">{escape(o["product_name"])}<br>'
+        f'<span style="color:#7a857d">{escape(o["customer_email"])} · UTR {escape(o.get("transaction_id") or "-")}</span></td>'
+        f'<td align="right" style="padding:10px 0;border-bottom:1px solid #eceee8;font-family:Arial,sans-serif;font-size:13px;color:#29352f">₹{o["amount"]:,.0f}</td></tr>'
+        for o in waiting[:20])
+    return f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0">{rows}</table>'
+
+
+def summary_email(stats: dict, dashboard_url: str | None) -> tuple[str, str]:
+    brand = escape(EMAIL_FROM_NAME)
+    quiet = not (stats["confirmed_count"] or stats["new_orders"] or stats["free_downloads"])
+    waiting = len(stats["waiting"])
+    subject = f"{EMAIL_FROM_NAME} morning summary: ₹{stats['revenue']:,.0f} confirmed, {waiting} to review"
+    headline = "A quiet night. No new orders." if quiet else f"₹{stats['revenue']:,.0f} confirmed overnight."
+    button = (f'<tr><td style="padding:0 32px 30px"><a href="{escape(dashboard_url, quote=True)}" style="display:inline-block;background:#29352f;color:#f5f4ef;'
+              f'text-decoration:none;font-family:Arial,sans-serif;font-size:13px;font-weight:bold;padding:14px 22px">Open owner space</a></td></tr>') if dashboard_url else ""
+    html = f"""<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f4ef;padding:32px 0">
+<tr><td align="center"><table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#ffffff;border:1px solid #d9dbd2">
+<tr><td style="background:#29352f;padding:22px 32px;font-family:Georgia,serif;color:#f5f4ef;font-size:18px">{brand}</td></tr>
+<tr><td style="padding:36px 32px 8px;font-family:Arial,sans-serif;font-size:11px;letter-spacing:2px;color:#b58e3d">MORNING SUMMARY · {escape(stats["date"]).upper()}</td></tr>
+<tr><td style="padding:0 32px;font-family:Georgia,serif;font-size:28px;line-height:1.2;color:#29352f">{headline}</td></tr>
+<tr><td style="padding:22px 32px 6px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+{_stat_cell("CONFIRMED SALES", str(stats["confirmed_count"]))}{_stat_cell("NEW ORDERS", str(stats["new_orders"]))}{_stat_cell("FREE DOWNLOADS", str(stats["free_downloads"]))}
+</tr></table></td></tr>
+<tr><td style="padding:22px 32px 4px;font-family:Arial,sans-serif;font-size:11px;letter-spacing:2px;color:#b58e3d">WAITING FOR YOUR APPROVAL ({waiting})</td></tr>
+<tr><td style="padding:0 32px 24px">{_waiting_rows(stats["waiting"])}</td></tr>
+{button}
+<tr><td style="border-top:1px solid #d9dbd2;padding:18px 32px;font-family:Arial,sans-serif;font-size:11px;color:#9aa29b">Covers the last 24 hours. You get this because you own {brand}. Change the time or turn it off in your owner space.</td></tr>
+</table></td></tr></table>"""
+    return subject, html

@@ -5,16 +5,18 @@ from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from pymongo.errors import DuplicateKeyError
 from pydantic import BaseModel, Field, EmailStr
-from typing import List, Optional
+from typing import List, Optional, Literal
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
 import mimetypes
+import hmac
 import os, uuid, logging, hashlib
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / ".env")
 from storage import init_storage, put_object, get_object, APP_NAME  # noqa: E402
-from email_service import send_email, approval_email  # noqa: E402
+from email_service import send_email, approval_email, summary_email  # noqa: E402
+from reports import IST, daily_stats, export_zip, orders_xlsx  # noqa: E402
 from urllib.parse import urlparse  # noqa: E402
 
 logger = logging.getLogger("morrow")
@@ -133,6 +135,7 @@ async def seed():
     await db.products.update_one({"id": "content-batch", "image_url": "https://images.unsplash.com/photo-1499750310107-5fef28a66643?auto=format&fit=crop&w=1000&q=85"}, {"$set": {"image_url": "https://images.unsplash.com/photo-1553877522-43269d4ea984?auto=format&fit=crop&w=1000&q=85"}})
     await db.settings.update_one({"id": "store"}, {"$setOnInsert": {"id": "store", "gpay_number": "9337939011", "qr_path": ""}}, upsert=True)
     await db.discounts.create_index("code", unique=True)
+    await db.cron_runs.create_index("run_id", unique=True)
     await db.discounts.update_one({"code": "EARLY20"}, {"$setOnInsert": {"id": str(uuid.uuid4()), "code": "EARLY20", "percent": 20, "max_uses": 50, "uses": 0, "active": True, "created_at": now()}}, upsert=True)
     if not await db.discounts.find_one({"featured": {"$exists": True}}):
         await db.discounts.update_many({}, {"$set": {"featured": False}})
@@ -440,6 +443,112 @@ async def upload_qr(file: UploadFile = File(...), _: dict = Depends(admin_user))
     result = put_object(f"{APP_NAME}/settings/qr-{uuid.uuid4()}{ext}", data, file.content_type)
     await db.settings.update_one({"id": "store"}, {"$set": {"qr_path": result["path"], "qr_content_type": file.content_type, "qr_updated_at": now()}})
     return await admin_settings(_)
+
+
+# ---------- Reports, exports & morning summary ----------
+SUMMARY_HOURS = (7, 8, 9)
+XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+
+class ReportSettingsIn(BaseModel):
+    summary_hour: Literal[0, 7, 8, 9]
+
+
+def owner_email() -> str:
+    return os.environ["ADMIN_EMAIL"].split(",")[0].strip()
+
+
+def file_response(data: bytes, ctype: str, name: str) -> Response:
+    return Response(content=data, media_type=ctype, headers={"Content-Disposition": f'attachment; filename="{name}"'})
+
+
+def stamp() -> str:
+    return datetime.now(IST).strftime("%Y-%m-%d")
+
+
+async def all_orders() -> list:
+    return await db.orders.find({}, {"_id": 0}).sort("created_at", -1).to_list(None)
+
+
+async def report_settings_view() -> dict:
+    s = await get_settings()
+    return {"summary_hour": s.get("summary_hour", 8), "last_sent_on": s.get("summary_sent_on", ""), "recipient": owner_email()}
+
+
+@api_router.get("/admin/reports/settings")
+async def get_report_settings(request: Request, _: dict = Depends(admin_user)):
+    origin = urlparse(request.headers.get("origin") or "")
+    if origin.scheme == "https" and origin.hostname:
+        await db.settings.update_one({"id": "store"}, {"$set": {"site_url": f"https://{origin.netloc}"}})
+    return await report_settings_view()
+
+
+@api_router.put("/admin/reports/settings")
+async def save_report_settings(body: ReportSettingsIn, _: dict = Depends(admin_user)):
+    await db.settings.update_one({"id": "store"}, {"$set": {"summary_hour": body.summary_hour}})
+    return await report_settings_view()
+
+
+@api_router.get("/admin/export")
+async def export_all(_: dict = Depends(admin_user)):
+    collections = {name: await db[name].find({}, {"_id": 0}).to_list(None) for name in ("products", "orders", "discounts", "settings")}
+    return file_response(export_zip(collections, collections["orders"]), "application/zip", f"morrow-market-export-{stamp()}.zip")
+
+
+@api_router.get("/admin/orders/spreadsheet")
+async def orders_spreadsheet(_: dict = Depends(admin_user)):
+    return file_response(orders_xlsx(await all_orders()), XLSX, f"morrow-market-orders-{stamp()}.xlsx")
+
+
+async def send_summary() -> dict:
+    s = await get_settings()
+    site = s.get("site_url")
+    subject, html = summary_email(daily_stats(await all_orders(), datetime.now(timezone.utc)), f"{site}/admin" if site else None)
+    await send_email(to=owner_email(), subject=subject, html=html)
+    await db.settings.update_one({"id": "store"}, {"$set": {"summary_sent_on": stamp()}})
+    return await report_settings_view()
+
+
+@api_router.post("/admin/reports/send-summary")
+async def send_summary_now(_: dict = Depends(admin_user)):
+    try:
+        return await send_summary()
+    except RuntimeError as e:
+        raise HTTPException(502, str(e))
+
+
+async def run_scheduled_summary():
+    s = await get_settings()
+    hour = datetime.now(IST).hour
+    if s.get("summary_hour", 8) != hour or s.get("summary_sent_on") == stamp():
+        return
+    try:
+        await send_summary()
+        logger.info("Morning summary sent")
+    except Exception as e:
+        logger.error(f"Morning summary failed: {e}")
+
+
+@api_router.post("/cron/daily-summary")
+async def cron_daily_summary(request: Request, background_tasks: BackgroundTasks):
+    # Cron endpoints must ack 2xx immediately; enqueue/background the actual work.
+    auth = request.headers.get("authorization", "")
+    token = auth[7:] if auth.startswith("Bearer ") else ""
+    if not token or not hmac.compare_digest(token, os.environ["WEBHOOK_CRON_SECRET"]):
+        raise HTTPException(401, "Unauthorized")
+    try:
+        body = await request.json()
+    except ValueError:
+        raise HTTPException(400, "Invalid body")
+    run_id = request.headers.get("x-webhook-id") or (body or {}).get("run_id")
+    if not run_id:
+        raise HTTPException(400, "Missing run id")
+    try:
+        await db.cron_runs.insert_one({"run_id": run_id, "at": now()})
+    except DuplicateKeyError:
+        return {"status": "duplicate"}
+    background_tasks.add_task(run_scheduled_summary)
+    return {"status": "accepted"}
 
 
 app.include_router(api_router)

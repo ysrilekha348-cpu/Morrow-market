@@ -8,6 +8,7 @@ import { Header } from "@/components/store/Header";
 import { OrdersSection } from "@/components/admin/Orders";
 import { PaymentSettings } from "@/components/admin/PaymentSettings";
 import { Discounts } from "@/components/admin/Discounts";
+import { Reports } from "@/components/admin/Reports";
 import { AddProductForm, ProductsSection } from "@/components/admin/Products";
 
 function useAdminData(isSignedIn, getToken) {
@@ -75,6 +76,7 @@ export default function Admin() {
         {showForm && <AddProductForm auth={auth} onSaved={onSaved} />}
         <Stats products={products} orders={orders} />
         <OrdersSection orders={orders} auth={auth} onDone={load} />
+        <Reports auth={auth} />
         <PaymentSettings auth={auth} />
         <Discounts auth={auth} />
         <ProductsSection products={products} auth={auth} onDone={load} />

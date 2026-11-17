@@ -18,7 +18,7 @@ function FileUpload({ product, auth, onDone }) {
   };
   return (
     <label className="outline-button small" title={state || "Upload the file customers receive"} data-testid={`upload-file-${product.id}`}>
-      <UploadCloud size={15} /> {state || (product.storage_path ? "Replace file" : "Upload file")}
+      <UploadCloud size={15} /> {state || (product.file_uploaded ? "Replace file" : "Upload real file")}
       <input type="file" hidden onChange={upload} data-testid={`upload-file-input-${product.id}`} />
     </label>
   );
@@ -63,7 +63,7 @@ export function ProductsSection({ products, auth, onDone }) {
         {products.map(p => (
           <div className="admin-row" key={p.id} data-testid={`admin-product-${p.id}`}>
             <img src={p.image_url || imgFallback} alt="" />
-            <div><b>{p.name}</b><span>{p.category} · {p.published ? "Published" : "Draft"} · {p.storage_path ? `File: ${p.file_name}` : "Sample file only"}</span></div>
+            <div><b>{p.name}</b><span>{p.category} · {p.published ? "Published" : "Draft"} · {p.file_uploaded ? `File uploaded: ${p.file_name}` : "Real download file required"}</span></div>
             <strong>{inr(p.price)}</strong>
             <FileUpload product={p} auth={auth} onDone={onDone} />
           </div>

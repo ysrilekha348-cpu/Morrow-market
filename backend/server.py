@@ -52,6 +52,7 @@ class Product(ProductIn):
     id: str
     created_at: str
     file_name: str = ""
+    file_uploaded: bool = False
 
 
 class CheckoutIn(BaseModel):
@@ -188,14 +189,16 @@ async def root(): return {"message": "Morrow Market API"}
 
 
 @api_router.get("/products", response_model=List[Product])
-async def products(): return await db.products.find({"published": True}, {"_id": 0}).sort("created_at", -1).to_list(100)
+async def products():
+    items = await db.products.find({"published": True}, {"_id": 0}).sort("created_at", -1).to_list(100)
+    return [{**item, "file_uploaded": bool(item.get("storage_path"))} for item in items]
 
 
 @api_router.get("/products/{product_id}", response_model=Product)
 async def product(product_id: str):
     item = await db.products.find_one({"id": product_id, "published": True}, {"_id": 0})
     if not item: raise HTTPException(404, "Product not found")
-    return item
+    return {**item, "file_uploaded": bool(item.get("storage_path"))}
 
 
 @api_router.get("/store/payment-info")
@@ -337,7 +340,9 @@ async def admin_user(user=Depends(require_user)):
 
 
 @api_router.get("/admin/products", response_model=List[Product])
-async def admin_products(_: dict = Depends(admin_user)): return await db.products.find({}, {"_id": 0}).sort("created_at", -1).to_list(100)
+async def admin_products(_: dict = Depends(admin_user)):
+    items = await db.products.find({}, {"_id": 0}).sort("created_at", -1).to_list(100)
+    return [{**item, "file_uploaded": bool(item.get("storage_path"))} for item in items]
 
 
 @api_router.post("/admin/products", response_model=Product)
@@ -364,7 +369,7 @@ async def upload_product_file(product_id: str, file: UploadFile = File(...), _: 
     ctype = file.content_type or "application/octet-stream"
     result = put_object(f"{APP_NAME}/products/{product_id}/{uuid.uuid4()}{ext}", data, ctype)
     await db.products.update_one({"id": product_id}, {"$set": {"file_name": Path(file.filename).name, "storage_path": result["path"], "file_content_type": ctype, "file_size": len(data)}})
-    return {"file_name": Path(file.filename).name, "status": "stored"}
+    return {"file_name": Path(file.filename).name, "status": "stored", "file_uploaded": True}
 
 
 @api_router.get("/admin/orders")
